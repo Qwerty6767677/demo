@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      flowmart_orders: {
+        Row: {
+          address: Json
+          category: string | null
+          closed_at: number | null
+          closes_at: number
+          contact: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          deposit_amount: number
+          id: string
+          items: Json
+          status: string
+          total_amount: number
+          ts: number
+          updated_at: string
+        }
+        Insert: {
+          address: Json
+          category?: string | null
+          closed_at?: number | null
+          closes_at: number
+          contact?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name: string
+          deposit_amount?: number
+          id: string
+          items: Json
+          status?: string
+          total_amount?: number
+          ts: number
+          updated_at?: string
+        }
+        Update: {
+          address?: Json
+          category?: string | null
+          closed_at?: number | null
+          closes_at?: number
+          contact?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          deposit_amount?: number
+          id?: string
+          items?: Json
+          status?: string
+          total_amount?: number
+          ts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
