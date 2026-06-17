@@ -87,8 +87,7 @@ export const Route = createFileRoute("/api/flowmart-orders")({
         if (!order.id) return Response.json({ error: "id required" }, { status: 400 });
         const { data, error } = await cloudClient()
           .from("flowmart_orders")
-          .update(toDbOrder(order))
-          .eq("id", order.id)
+          .upsert(toDbOrder(order), { onConflict: "id" })
           .select("*")
           .single();
         if (error) return Response.json({ error: error.message }, { status: 500 });
