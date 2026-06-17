@@ -661,6 +661,58 @@
   .btn-logout { width: 100%; padding: 10px; margin-top: 10px; background: #fee2e2; color: #b91c1c; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .btn-logout:hover { background: #fecaca; }
   .user-chip { font-size: 11px; color: #0f766e; background: #ccfbf1; padding: 4px 9px; border-radius: 99px; margin-right: 6px; font-weight: 700; }
+  .user-chip.supplier { color: #6b21a8; background: #f3e8ff; }
+
+  /* role-based visibility */
+  body.role-supplier #sub-tab-market,
+  body.role-supplier #sub-tab-orders,
+  body.role-supplier #sub-tab-dashboard,
+  body.role-supplier .mall-cart-bar,
+  body.role-supplier .nike-nav-container { display: none !important; }
+  body:not(.role-supplier) #sub-tab-supplier { display: none !important; }
+
+  /* signup type chooser */
+  .type-chooser { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .type-opt { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 8px; text-align: center; cursor: pointer; transition: all .15s; background: #fff; }
+  .type-opt .ic { font-size: 22px; }
+  .type-opt .tt { font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+  .type-opt .ds { font-size: 10px; color: #64748b; margin-top: 1px; }
+  .type-opt.active { border-color: #0f766e; background: #ecfeff; box-shadow: 0 0 0 3px rgba(15,118,110,.12); }
+  .auth-field select, .auth-field textarea { width: 100%; padding: 11px 13px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; box-sizing: border-box; resize: vertical; }
+
+  /* supplier dashboard */
+  .sup-hero { background: linear-gradient(135deg,#312e81,#6d28d9); color: #fff; padding: 22px; border-radius: 20px; margin-bottom: 16px; box-shadow: 0 20px 40px -16px rgba(109,40,217,.4); }
+  .sup-hero .lbl { font-size: 11px; opacity: .75; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .sup-hero .ttl { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  .sup-hero .sub { font-size: 13px; opacity: .8; margin-top: 4px; }
+  .sup-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 18px; }
+  .sup-stats .sc { background: rgba(255,255,255,.12); backdrop-filter: blur(6px); padding: 12px; border-radius: 12px; }
+  .sup-stats .sc .v { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
+  .sup-stats .sc .l { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+  .order-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-xs); }
+  .order-card.closed { background: #f0fdf4; border-color: #bbf7d0; }
+  .order-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 10px; flex-wrap: wrap; }
+  .order-head .who { font-weight: 800; font-size: 14px; color: #0f172a; }
+  .order-head .meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .order-status { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: .5px; }
+  .order-status.pending { background: #fef3c7; color: #b45309; }
+  .order-status.closed { background: #dcfce7; color: #15803d; }
+  .order-items { font-size: 12px; color: var(--text-soft); display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); margin: 8px 0; }
+  .order-items .row { display: flex; justify-content: space-between; gap: 10px; }
+  .order-items .row .nm { flex: 1; }
+  .order-items .row .am { font-family: var(--font-mono); font-weight: 700; color: var(--text); }
+  .order-total { display: flex; justify-content: space-between; align-items: center; }
+  .order-total .lbl { font-size: 12px; color: var(--text-muted); font-weight: 700; }
+  .order-total .amt { font-family: var(--font-mono); font-weight: 800; font-size: 18px; color: var(--primary); }
+  .order-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn-close-deal, .btn-print { flex: 1; min-width: 140px; padding: 10px; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .btn-close-deal { background: linear-gradient(135deg,#15803d,#22c55e); color: #fff; }
+  .btn-close-deal:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -10px rgba(34,197,94,.55); }
+  .btn-print { background: #0f172a; color: #fff; }
+  .btn-print:hover { background: #000; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+  .empty-state .ic { font-size: 40px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -696,6 +748,7 @@
     <button class="sub-tab-btn active" id="sub-tab-market" onclick="switchPage('market')">รายการสินค้าดีลกลุ่ม</button>
     <button class="sub-tab-btn" id="sub-tab-orders" onclick="switchPage('orders')">บิลสรุปจองร่วม (<span id="cart-count">0</span>)</button>
     <button class="sub-tab-btn" id="sub-tab-dashboard" onclick="switchPage('dashboard')">📊 แดชบอร์ด</button>
+    <button class="sub-tab-btn" id="sub-tab-supplier" onclick="switchPage('supplier')">🏭 ออเดอร์ลูกค้า</button>
   </div>
 
   <div id="page-market" class="page active">
@@ -829,7 +882,26 @@
       </div>
     </div>
   </div>
+
+  <div id="page-supplier" class="page">
+    <div class="sup-hero">
+      <div class="lbl">Supplier Dashboard</div>
+      <div class="ttl" id="sup-company-name">🏭 ศูนย์จัดการคำสั่งซื้อโรงงาน</div>
+      <div class="sub" id="sup-company-meta">หมวดสินค้า: —</div>
+      <div class="sup-stats">
+        <div class="sc"><div class="v" id="sup-stat-total">0</div><div class="l">คำสั่งซื้อทั้งหมด</div></div>
+        <div class="sc"><div class="v" id="sup-stat-pending">0</div><div class="l">รอปิดดีล</div></div>
+        <div class="sc"><div class="v" id="sup-stat-closed">0</div><div class="l">ปิดดีลแล้ว</div></div>
+        <div class="sc"><div class="v" id="sup-stat-revenue">฿0</div><div class="l">ยอดขายรวม</div></div>
+      </div>
+    </div>
+    <div class="section-label">📋 รายการคำสั่งซื้อจากลูกค้า</div>
+    <div id="supplier-orders-list"></div>
+  </div>
 </div>
+
+
+
 
 
 <div class="modal-overlay" id="account-modal-layer">
@@ -1033,6 +1105,7 @@ function switchPage(page) {
   document.getElementById(`sub-tab-${page}`).classList.add('active');
   if (page === 'orders') renderReceipt();
   if (page === 'dashboard') renderDashboard();
+  if (page === 'supplier') renderSupplierDashboard();
 }
 
 /* ============ DASHBOARD ============ */
@@ -1331,7 +1404,256 @@ function executeCheckout() {
     toggleAccountModal();
     return;
   }
-  showToast(`🎉 ยืนยันสัญญากลุ่มพิกัดพื้นที่ จ.${detectedProvince} ไปยังโรงงานหลักแล้ว`);
+  const validItems = DATA.filter(x => x.myQty >= x.min);
+  if (validItems.length === 0) {
+    showToast("⚠️ ยังไม่มีรายการที่ถึงขั้นต่ำสำหรับยืนยัน");
+    return;
+  }
+  const address = {
+    detail,
+    subdistrict: document.getElementById('input-subdistrict').value,
+    district: document.getElementById('input-district').value,
+    province: document.getElementById('input-province').value,
+    zip: document.getElementById('input-zipcode').value,
+  };
+  const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
+  const byCat = {};
+  validItems.forEach(it => {
+    (byCat[it.cat] = byCat[it.cat] || []).push(it);
+  });
+  Object.entries(byCat).forEach(([cat, items]) => {
+    const orderItems = items.map(it => {
+      const price = getActiveTier(it).p;
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
+    });
+    const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
+    addSupplierOrder({
+      id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+      ts: Date.now(),
+      customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
+      customerName: shopName,
+      address,
+      category: cat,
+      items: orderItems,
+      totalAmount,
+      depositAmount: Math.round(totalAmount * 0.3),
+      status: 'pending',
+    });
+  });
+  validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
+  updateCartSummary();
+  renderMarket();
+  showToast(`🎉 ส่งคำสั่งซื้อ ${validItems.length} รายการไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว`);
+}
+
+/* ============ SUPPLIER ORDERS STORE ============ */
+const SUPPLIER_ORDERS_KEY = 'flowmart_supplier_orders';
+function getSupplierOrders() {
+  try { return JSON.parse(localStorage.getItem(SUPPLIER_ORDERS_KEY) || '[]'); } catch { return []; }
+}
+function saveSupplierOrders(list) {
+  localStorage.setItem(SUPPLIER_ORDERS_KEY, JSON.stringify(list));
+}
+function addSupplierOrder(order) {
+  const list = getSupplierOrders();
+  list.unshift(order);
+  saveSupplierOrders(list);
+}
+function seedSupplierOrdersIfEmpty() {
+  if (getSupplierOrders().length > 0) return;
+  const seeds = [
+    { id: 'ORD-DEMO-001', ts: Date.now() - 86400000, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย',
+      address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
+      category: 'ของแห้ง',
+      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
+      totalAmount: 2475, depositAmount: 742, status: 'pending' },
+    { id: 'ORD-DEMO-002', ts: Date.now() - 3600000, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี',
+      address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
+      category: 'เครื่องดื่ม',
+      items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
+      totalAmount: 2760, depositAmount: 828, status: 'pending' },
+    { id: 'ORD-DEMO-003', ts: Date.now() - 7200000, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ',
+      address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
+      category: 'ขนม',
+      items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
+      totalAmount: 1800, depositAmount: 540, status: 'pending' },
+  ];
+  saveSupplierOrders(seeds);
+}
+
+/* ============ SUPPLIER DASHBOARD ============ */
+function renderSupplierDashboard() {
+  if (!currentUser || currentUser.type !== 'supplier') return;
+  const users = getUsers();
+  const me = users[currentUser.email] || {};
+  document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
+  document.getElementById('sup-company-meta').textContent = `หมวดสินค้า: ${me.category || '—'} · ${me.productDesc || ''}`;
+
+  const all = getSupplierOrders();
+  const mine = all.filter(o => o.category === me.category);
+  const pending = mine.filter(o => o.status === 'pending');
+  const closed = mine.filter(o => o.status === 'closed');
+  const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
+  document.getElementById('sup-stat-total').textContent = mine.length;
+  document.getElementById('sup-stat-pending').textContent = pending.length;
+  document.getElementById('sup-stat-closed').textContent = closed.length;
+  document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
+
+  const list = document.getElementById('supplier-orders-list');
+  if (mine.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
+    return;
+  }
+  list.innerHTML = mine.map(o => `
+    <div class="order-card ${o.status}">
+      <div class="order-head">
+        <div>
+          <div class="who">${escapeHtml(o.customerName)}</div>
+          <div class="meta">${o.id} · ${new Date(o.ts).toLocaleString('th-TH')} · ${escapeHtml(o.address.province)}</div>
+        </div>
+        <span class="order-status ${o.status}">${o.status === 'closed' ? '✓ ปิดดีลแล้ว' : '⏳ รอปิดดีล'}</span>
+      </div>
+      <div class="order-items">
+        ${o.items.map(i => `<div class="row"><span class="nm">${escapeHtml(i.name)} × ${i.qty} ${escapeHtml(i.unit)}</span><span class="am">฿${i.total.toLocaleString()}</span></div>`).join('')}
+      </div>
+      <div class="order-total">
+        <span class="lbl">ยอดรวม (มัดจำ 30%: ฿${o.depositAmount.toLocaleString()})</span>
+        <span class="amt">฿${o.totalAmount.toLocaleString()}</span>
+      </div>
+      <div class="order-actions">
+        ${o.status === 'pending'
+          ? `<button class="btn-close-deal" onclick="closeDeal('${o.id}')">✓ สรุปและปิดดีล</button>`
+          : ''}
+        <button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeDeal(orderId) {
+  const list = getSupplierOrders();
+  const o = list.find(x => x.id === orderId);
+  if (!o) return;
+  o.status = 'closed';
+  o.closedAt = Date.now();
+  saveSupplierOrders(list);
+  renderSupplierDashboard();
+  showToast(`✅ ปิดดีลคำสั่งซื้อ ${orderId} เรียบร้อย พร้อมพิมพ์เอกสารส่งของได้เลย`);
+}
+
+function printOrderPDF(orderId) {
+  const o = getSupplierOrders().find(x => x.id === orderId);
+  if (!o) return;
+  const users = getUsers();
+  const supplier = (currentUser && users[currentUser.email]) || {};
+  const w = window.open('', '_blank', 'width=800,height=900');
+  if (!w) { showToast('⚠️ เบราว์เซอร์บล็อกป๊อปอัป กรุณาอนุญาต'); return; }
+  const itemsRows = o.items.map((i, idx) => `
+    <tr>
+      <td style="text-align:center;">${idx + 1}</td>
+      <td>${i.name}<div style="font-size:11px;color:#64748b;">${i.unit}</div></td>
+      <td style="text-align:center;">${i.qty}</td>
+      <td style="text-align:right;">฿${i.price.toLocaleString()}</td>
+      <td style="text-align:right;">฿${i.total.toLocaleString()}</td>
+    </tr>`).join('');
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8">
+    <title>สรุปคำสั่งซื้อ ${o.id}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif;}
+      body{padding:40px;color:#0f172a;font-size:13px;background:#fff;}
+      .doc{max-width:720px;margin:0 auto;}
+      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:16px;margin-bottom:20px;}
+      .hd h1{font-size:24px;font-weight:800;}
+      .hd .meta{text-align:right;font-size:12px;color:#475569;}
+      .hd .meta strong{color:#0f172a;font-size:14px;}
+      .block{margin-bottom:18px;padding:14px;border:1px solid #e2e8f0;border-radius:10px;}
+      .block h3{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:800;}
+      .block .nm{font-size:15px;font-weight:800;margin-bottom:4px;}
+      .block .ad{font-size:13px;color:#334155;line-height:1.6;}
+      .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+      table{width:100%;border-collapse:collapse;margin-top:8px;}
+      th{background:#0f172a;color:#fff;padding:10px;text-align:left;font-size:12px;font-weight:700;}
+      td{padding:10px;border-bottom:1px solid #e2e8f0;font-size:13px;vertical-align:top;}
+      tfoot td{font-weight:800;border-top:2px solid #0f172a;border-bottom:none;font-size:14px;}
+      .total-box{background:#0f172a;color:#fff;padding:14px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+      .total-box .amt{font-size:22px;font-weight:800;}
+      .sig{margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+      .sig .line{border-top:1px solid #0f172a;padding-top:6px;text-align:center;font-size:11px;color:#64748b;}
+      .ft{margin-top:24px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:12px;}
+      @media print { body{padding:20px;} .noprint{display:none;} }
+      .actions{text-align:center;margin-bottom:18px;}
+      .actions button{padding:10px 22px;margin:0 4px;border:0;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;}
+      .actions .p{background:#0f172a;color:#fff;}
+      .actions .c{background:#e2e8f0;color:#0f172a;}
+    </style></head><body>
+    <div class="actions noprint">
+      <button class="p" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="c" onclick="window.close()">ปิด</button>
+    </div>
+    <div class="doc">
+      <div class="hd">
+        <div>
+          <h1>🛒 Flowmart</h1>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">ใบสรุปคำสั่งซื้อจากดีลกลุ่ม</div>
+        </div>
+        <div class="meta">
+          <strong>เลขที่: ${o.id}</strong><br>
+          วันที่: ${new Date(o.ts).toLocaleString('th-TH')}<br>
+          ${o.closedAt ? 'ปิดดีล: ' + new Date(o.closedAt).toLocaleString('th-TH') : 'สถานะ: รอปิดดีล'}
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="block">
+          <h3>🏭 ผู้ขาย / โรงงาน</h3>
+          <div class="nm">${escapeHtml(supplier.company || supplier.name || '-')}</div>
+          <div class="ad">หมวด: ${escapeHtml(supplier.category || '-')}<br>
+          ${escapeHtml(supplier.productDesc || '')}<br>
+          ${escapeHtml(supplier.supplierAddress || '')}<br>
+          ☎ ${escapeHtml(supplier.contact || '-')}<br>
+          📧 ${escapeHtml(currentUser ? currentUser.email : '-')}</div>
+        </div>
+        <div class="block">
+          <h3>🛍️ ลูกค้า / ผู้สั่งซื้อ</h3>
+          <div class="nm">${escapeHtml(o.customerName)}</div>
+          <div class="ad">
+          ${escapeHtml(o.address.detail)}<br>
+          ต.${escapeHtml(o.address.subdistrict)} อ.${escapeHtml(o.address.district)}<br>
+          จ.${escapeHtml(o.address.province)} ${escapeHtml(o.address.zip)}<br>
+          📧 ${escapeHtml(o.customerEmail)}</div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>📦 รายการสินค้า</h3>
+        <table>
+          <thead><tr><th style="width:40px;text-align:center;">#</th><th>สินค้า</th><th style="width:70px;text-align:center;">จำนวน</th><th style="width:90px;text-align:right;">ราคา/หน่วย</th><th style="width:110px;text-align:right;">รวม</th></tr></thead>
+          <tbody>${itemsRows}</tbody>
+          <tfoot><tr><td colspan="4" style="text-align:right;">ยอดรวมทั้งสิ้น</td><td style="text-align:right;">฿${o.totalAmount.toLocaleString()}</td></tr></tfoot>
+        </table>
+        <div class="total-box">
+          <div>
+            <div style="font-size:11px;opacity:.7;">มัดจำ 30% (ชำระแล้ว)</div>
+            <div style="font-size:14px;font-weight:700;">฿${o.depositAmount.toLocaleString()}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;opacity:.7;">ยอดคงเหลือ ณ วันรับสินค้า</div>
+            <div class="amt">฿${(o.totalAmount - o.depositAmount).toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sig">
+        <div class="line">ลายเซ็นผู้ส่งสินค้า / โรงงาน</div>
+        <div class="line">ลายเซ็นผู้รับสินค้า / ลูกค้า</div>
+      </div>
+
+      <div class="ft">เอกสารนี้สร้างโดยระบบ Flowmart · ${new Date().toLocaleString('th-TH')}</div>
+    </div>
+    <script>setTimeout(()=>window.print(),400);<\/script>
+    </body></html>`);
+  w.document.close();
 }
 
 function showToast(msg) {
@@ -1425,6 +1747,14 @@ function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg; el.classList.add('show');
 }
+let selectedAccountType = 'customer';
+function selectAccountType(t) {
+  selectedAccountType = t;
+  document.querySelectorAll('.type-opt').forEach(el => el.classList.toggle('active', el.dataset.type === t));
+  document.getElementById('signup-supplier-extra').style.display = t === 'supplier' ? 'block' : 'none';
+  document.getElementById('signup-name-label').textContent = t === 'supplier' ? 'ชื่อผู้ติดต่อ' : 'ชื่อ / ชื่อร้านค้า';
+}
+
 function handleSignup(e) {
   e.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
@@ -1435,11 +1765,23 @@ function handleSignup(e) {
   if (!/^\S+@\S+\.\S+$/.test(email)) return showAuthError('รูปแบบอีเมลไม่ถูกต้อง');
   const users = getUsers();
   if (users[email]) return showAuthError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
-  users[email] = { name, password: pw, createdAt: Date.now() };
+  const record = { name, password: pw, createdAt: Date.now(), type: selectedAccountType };
+  if (selectedAccountType === 'supplier') {
+    const company = document.getElementById('signup-company').value.trim();
+    const category = document.getElementById('signup-category').value;
+    const productDesc = document.getElementById('signup-product-desc').value.trim();
+    const contact = document.getElementById('signup-contact').value.trim();
+    const supplierAddress = document.getElementById('signup-supplier-address').value.trim();
+    if (!company || !category) return showAuthError('กรุณาระบุชื่อโรงงานและหมวดสินค้า');
+    Object.assign(record, { company, category, productDesc, contact, supplierAddress });
+  }
+  users[email] = record;
   saveUsers(users);
   localStorage.setItem(AUTH_REMEMBER_KEY, email);
-  loginAs(email, name, true);
-  showToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
+  loginAs(email, name, true, record.type);
+  showToast(record.type === 'supplier'
+    ? `🏭 ลงทะเบียนโรงงานสำเร็จ ยินดีต้อนรับ ${record.company}`
+    : `🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
   return false;
 }
 function handleLogin(e) {
@@ -1452,13 +1794,14 @@ function handleLogin(e) {
   if (users[email].password !== pw) return showAuthError('รหัสผ่านไม่ถูกต้อง');
   if (remember) localStorage.setItem(AUTH_REMEMBER_KEY, email);
   else localStorage.removeItem(AUTH_REMEMBER_KEY);
-  loginAs(email, users[email].name, remember);
+  loginAs(email, users[email].name, remember, users[email].type || 'customer');
   showToast(`👋 ยินดีต้อนรับกลับคุณ ${users[email].name}`);
   return false;
 }
-function loginAs(email, name, persist) {
-  currentUser = { email, name };
-  const payload = JSON.stringify({ email, name, ts: Date.now() });
+function loginAs(email, name, persist, type) {
+  type = type || 'customer';
+  currentUser = { email, name, type };
+  const payload = JSON.stringify({ email, name, type, ts: Date.now() });
   if (persist) {
     localStorage.setItem(AUTH_SESSION_KEY, payload);
     setAuthCookie(payload);
@@ -1470,6 +1813,8 @@ function loginAs(email, name, persist) {
   }
   document.getElementById('auth-overlay').classList.remove('open');
   applyUserToUI();
+  if (type === 'supplier') switchPage('supplier');
+  else switchPage('market');
 }
 function handleLogout() {
   localStorage.removeItem(AUTH_SESSION_KEY);
@@ -1477,33 +1822,38 @@ function handleLogout() {
   clearAuthCookie();
   localStorage.removeItem(AUTH_REMEMBER_KEY);
   currentUser = null;
+  document.body.classList.remove('role-supplier', 'role-customer');
   document.getElementById('account-modal-layer').classList.remove('open');
   const emailInput = document.getElementById('login-email');
   const rememberInput = document.getElementById('login-remember');
   if (emailInput) emailInput.value = '';
   if (rememberInput) rememberInput.checked = false;
+  const chip = document.getElementById('user-chip');
+  if (chip) chip.remove();
+  switchAuthTab('login');
   document.getElementById('auth-overlay').classList.add('open');
 }
 function applyUserToUI() {
   if (!currentUser) return;
+  const type = currentUser.type || 'customer';
+  document.body.classList.toggle('role-supplier', type === 'supplier');
+  document.body.classList.toggle('role-customer', type !== 'supplier');
   const u = document.getElementById('input-username');
   if (u && (!u.value || u.dataset.bound !== '1')) { u.value = currentUser.name; u.dataset.bound = '1'; }
   let chip = document.getElementById('user-chip');
   if (!chip) {
     chip = document.createElement('span');
     chip.id = 'user-chip';
-    chip.className = 'user-chip';
     const btn = document.querySelector('.account-trigger-btn');
     btn.parentNode.insertBefore(chip, btn);
   }
-  chip.textContent = '👤 ' + currentUser.name;
+  chip.className = 'user-chip' + (type === 'supplier' ? ' supplier' : '');
+  chip.textContent = (type === 'supplier' ? '🏭 ' : '👤 ') + currentUser.name;
 }
 function initAuth() {
-  // ล้าง session คีย์เก่า ๆ ที่ไม่ใช้แล้ว
   localStorage.removeItem('flowmart_session');
   localStorage.removeItem('flowmart_session_v2');
 
-  // ลองอ่าน session ที่จดจำไว้ (localStorage = จดจำข้ามรอบ, sessionStorage = เฉพาะแท็บนี้)
   let saved = null;
   try {
     saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || getAuthCookie() || sessionStorage.getItem(AUTH_SESSION_KEY) || 'null');
@@ -1511,17 +1861,18 @@ function initAuth() {
 
   const users = getUsers();
   if (saved && saved.email && users[saved.email]) {
-    // เข้าระบบอัตโนมัติเลย ไม่ต้องเด้งหน้า login
-    currentUser = { email: saved.email, name: users[saved.email].name };
-    const payload = JSON.stringify({ email: saved.email, name: users[saved.email].name, ts: saved.ts || Date.now() });
+    const u = users[saved.email];
+    const type = u.type || 'customer';
+    currentUser = { email: saved.email, name: u.name, type };
+    const payload = JSON.stringify({ email: saved.email, name: u.name, type, ts: saved.ts || Date.now() });
     localStorage.setItem(AUTH_SESSION_KEY, payload);
     setAuthCookie(payload);
     document.getElementById('auth-overlay').classList.remove('open');
     applyUserToUI();
+    if (type === 'supplier') switchPage('supplier');
     return;
   }
 
-  // ไม่มี session ที่ใช้ได้ → ล้างค่าค้าง แล้วเปิดหน้า login
   localStorage.removeItem(AUTH_SESSION_KEY);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
   clearAuthCookie();
@@ -1537,6 +1888,7 @@ function initAuth() {
 document.addEventListener('DOMContentLoaded', () => {
   detectUserLocation();
   renderMarket();
+  seedSupplierOrdersIfEmpty();
   initAuth();
 });
 
@@ -1569,10 +1921,52 @@ document.addEventListener('DOMContentLoaded', () => {
     </form>
 
     <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
+      <div class="type-chooser">
+        <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
+          <div class="ic">🛍️</div>
+          <div class="tt">ลูกค้า / ร้านค้า</div>
+          <div class="ds">ซื้อสินค้ากลุ่ม</div>
+        </div>
+        <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
+          <div class="ic">🏭</div>
+          <div class="tt">โรงงาน / ซัพพลายเออร์</div>
+          <div class="ds">รับคำสั่งซื้อ</div>
+        </div>
+      </div>
+
       <div class="auth-field">
-        <label>ชื่อ / ชื่อร้านค้า</label>
+        <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
         <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
       </div>
+
+      <div id="signup-supplier-extra" style="display:none;">
+        <div class="auth-field">
+          <label>ชื่อโรงงาน / บริษัท</label>
+          <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
+        </div>
+        <div class="auth-field">
+          <label>หมวดสินค้าที่ขาย</label>
+          <select id="signup-category">
+            <option value="ของแห้ง">ของแห้ง / เครื่องปรุง</option>
+            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
+            <option value="ขนม">ขนม / ขบเคี้ยว</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div class="auth-field">
+          <label>รายละเอียดสินค้า / ประเภท</label>
+          <textarea id="signup-product-desc" rows="2" placeholder="เช่น น้ำตาลทรายขาว, น้ำตาลทรายแดง, น้ำเชื่อม"></textarea>
+        </div>
+        <div class="auth-field">
+          <label>เบอร์โทรติดต่อ</label>
+          <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="auth-field">
+          <label>ที่อยู่โรงงาน</label>
+          <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
+        </div>
+      </div>
+
       <div class="auth-field">
         <label>อีเมล</label>
         <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
