@@ -1642,13 +1642,53 @@ async function executeCheckout() {
 
 /* ============ SUPPLIER ORDERS STORE ============ */
 const SUPPLIER_ORDERS_KEY = 'flowmart_supplier_orders';
+const FLOWMART_ORDERS_API = '/api/flowmart-orders';
+let flowmartCloudReady = false;
+let flowmartCloudSyncing = false;
 function getSupplierOrders() {
   try { return JSON.parse(localStorage.getItem(SUPPLIER_ORDERS_KEY) || '[]'); } catch { return []; }
 }
 function saveSupplierOrders(list) {
   localStorage.setItem(SUPPLIER_ORDERS_KEY, JSON.stringify(list));
 }
-function addSupplierOrder(order) {
+function mergeSupplierOrders(incoming) {
+  const merged = new Map([...incoming, ...getSupplierOrders()].map(o => [o.id, o]));
+  const list = Array.from(merged.values()).sort((a, b) => b.ts - a.ts);
+  saveSupplierOrders(list);
+  return list;
+}
+async function fetchCloudOrders() {
+  if (flowmartCloudSyncing) return getSupplierOrders();
+  flowmartCloudSyncing = true;
+  try {
+    const res = await fetch(FLOWMART_ORDERS_API, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'โหลดออเดอร์จาก Cloud ไม่สำเร็จ');
+    flowmartCloudReady = true;
+    return mergeSupplierOrders(Array.isArray(data.orders) ? data.orders : []);
+  } catch (e) {
+    console.warn('Flowmart Cloud sync failed:', e);
+    return getSupplierOrders();
+  } finally {
+    flowmartCloudSyncing = false;
+  }
+}
+async function syncOrderToCloud(order, method = 'POST') {
+  const res = await fetch(FLOWMART_ORDERS_API, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'บันทึกออเดอร์ขึ้น Cloud ไม่สำเร็จ');
+  flowmartCloudReady = true;
+  return data.order || order;
+}
+async function deleteCloudOrder(orderId) {
+  const res = await fetch(`${FLOWMART_ORDERS_API}?id=${encodeURIComponent(orderId)}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('ลบออเดอร์จาก Cloud ไม่สำเร็จ');
+}
+async function addSupplierOrder(order) {
   const list = getSupplierOrders();
   // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
   if (!order.closesAt) {
@@ -1663,6 +1703,12 @@ function addSupplierOrder(order) {
   }
   list.unshift(order);
   saveSupplierOrders(list);
+  try {
+    await syncOrderToCloud(order, 'POST');
+  } catch (e) {
+    showToast('⚠️ บันทึกในเครื่องแล้ว แต่ยังส่งขึ้นเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่/เช็กเน็ต');
+    throw e;
+  }
 }
 function seedSupplierOrdersIfEmpty() {
   // ✅ Seed ตัวอย่าง "เฉพาะ" ตอน localStorage ว่าง — ห้ามทับออเดอร์จริงของลูกค้า
