@@ -1378,7 +1378,9 @@ function updateCartSummary() {
     }
   });
   document.getElementById('summary-deposit').textContent = '฿' + depTotal.toLocaleString();
-  document.getElementById('cart-count').textContent = count;
+  // นับรวมประวัติบิลที่ยืนยันแล้ว เพื่อให้ตัวเลขในแท็บไม่นิ่งอยู่ที่ 0 หลังกดสั่ง
+  const historyCount = (typeof getCustomerOrders === 'function') ? getCustomerOrders().length : 0;
+  document.getElementById('cart-count').textContent = count + historyCount;
 }
 
 function renderReceipt() {
@@ -1420,11 +1422,16 @@ function renderReceipt() {
       const status = live ? live.status : h.status;
       const closesAt = live ? live.closesAt : h.closesAt;
       const remain = closesAt ? Math.max(0, closesAt - Date.now()) : 0;
-      const mm = Math.floor(remain / 60000), ss = Math.floor((remain % 60000) / 1000);
+      const canCancel = status === 'pending' && remain > 30 * 60000;
       const statusLabel = status === 'closed'
         ? `<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">✅ ปิดดีลแล้ว</span>`
-        : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล ${mm}:${String(ss).padStart(2,'0')}</span>`;
+        : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล <strong data-closesat="${closesAt}">${fmtCountdown(remain)}</strong></span>`;
       const itemsHtml = h.items.map(i => `<div style="font-size:12px;color:#475569;">• ${i.name} × ${i.qty} ${i.unit} = ฿${i.total.toLocaleString()}</div>`).join('');
+      const cancelBtn = status === 'pending'
+        ? (canCancel
+            ? `<button class="cancel-btn" onclick="cancelHistoryOrder('${h.id}')">ยกเลิกบิลนี้</button>`
+            : `<span class="lock-text">🔒 ใกล้ปิดดีล (เหลือ < 30 นาที) ยกเลิกไม่ได้</span>`)
+        : '';
       html += `
         <div class="receipt-item" style="flex-direction:column;align-items:stretch;gap:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -1437,19 +1444,38 @@ function renderReceipt() {
             <span style="font-size:12px;color:#475569;">ยอดรวม</span>
             <span style="font-weight:800;color:var(--primary);font-family:var(--font-mono);">฿${h.totalAmount.toLocaleString()}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:12px;color:#475569;">มัดจำ 30%</span>
             <span style="font-weight:700;color:#1e293b;font-family:var(--font-mono);">฿${h.depositAmount.toLocaleString()}</span>
           </div>
+          ${cancelBtn ? `<div style="text-align:right;">${cancelBtn}</div>` : ''}
         </div>`;
     });
   }
 
   if (!html) {
     list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0;">ยังไม่มีรายการออเดอร์</p>`;
+    startCustomerReceiptTicker();
     return;
   }
   list.innerHTML = html;
+  startCustomerReceiptTicker();
+}
+
+/* ============ CUSTOMER RECEIPT TICKER (countdown สด + auto-close) ============ */
+let customerTickTimer = null;
+function startCustomerReceiptTicker() {
+  if (customerTickTimer) clearInterval(customerTickTimer);
+  customerTickTimer = setInterval(() => {
+    const pageEl = document.getElementById('page-orders');
+    if (!pageEl || !pageEl.classList.contains('active')) return;
+    const expired = autoCloseExpiredOrders();
+    if (expired) { renderReceipt(); return; }
+    document.querySelectorAll('#receipt-list [data-closesat]').forEach(el => {
+      const t = Number(el.getAttribute('data-closesat'));
+      el.textContent = fmtCountdown(t - Date.now());
+    });
+  }, 1000);
 }
 
 /* ============ CUSTOMER ORDER HISTORY ============ */
@@ -1477,6 +1503,36 @@ function cancelOrder(id) {
   updateTrustScore(25);
   renderMarket();
   showToast(`⚠️ ถอนตัวจากดีลกลุ่มแล้ว (คะแนนพฤติกรรมถูกหักออก)`);
+}
+
+/* ยกเลิกบิลที่ยืนยันแล้ว (ลบทั้งฝั่งลูกค้า + ฝั่งโรงงาน) — ล็อกเมื่อเหลือ < 30 นาที */
+function cancelHistoryOrder(orderId) {
+  const supplierList = getSupplierOrders();
+  const target = supplierList.find(o => o.id === orderId);
+  if (target) {
+    if (target.status !== 'pending') {
+      showToast('⛔ ดีลปิดไปแล้ว ยกเลิกไม่ได้');
+      return;
+    }
+    const remain = target.closesAt ? target.closesAt - Date.now() : 0;
+    if (remain <= 30 * 60000) {
+      showToast('🔒 เหลือเวลาน้อยกว่า 30 นาที — ระบบล็อกการยกเลิกแล้ว');
+      return;
+    }
+  }
+  if (!confirm('ยืนยันยกเลิกบิลนี้? คะแนนพฤติกรรมจะถูกหัก')) return;
+
+  // ลบฝั่งโรงงาน
+  saveSupplierOrders(supplierList.filter(o => o.id !== orderId));
+  // ลบฝั่งลูกค้า
+  try {
+    const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
+    localStorage.setItem(CUSTOMER_ORDERS_KEY, JSON.stringify(all.filter(o => o.id !== orderId)));
+  } catch {}
+  updateTrustScore(25);
+  updateCartSummary();
+  renderReceipt();
+  showToast('⚠️ ยกเลิกบิลเรียบร้อย (คะแนนพฤติกรรมถูกหัก)');
 }
 
 function executeCheckout() {
@@ -1509,7 +1565,8 @@ function executeCheckout() {
   Object.entries(byCat).forEach(([cat, items]) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
-      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
+      // ส่ง minutesLeft ของสินค้าไปด้วย เพื่อให้ closesAt ในบิลตรงกับที่หน้าตลาดแสดง
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, minutesLeft: it.minutesLeft };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
     const order = {
@@ -1549,9 +1606,16 @@ function addSupplierOrder(order) {
   const list = getSupplierOrders();
   // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
   if (!order.closesAt) {
-    const itemId = order.items[0] && order.items[0].id;
+    const first = order.items[0] || {};
+    const itemId = first.id;
     const existing = list.find(o => o.status === 'pending' && o.items[0] && o.items[0].id === itemId && o.closesAt && o.closesAt > Date.now());
-    order.closesAt = existing ? existing.closesAt : Date.now() + 1000 * 60 * 5; // ดีลใหม่: 5 นาที (เดโม)
+    if (existing) {
+      order.closesAt = existing.closesAt;
+    } else {
+      // ใช้ minutesLeft ของสินค้าเอง เพื่อให้ตรงกับเวลาที่แสดงในหน้าตลาด/ตะกร้า
+      const mins = (typeof first.minutesLeft === 'number' && first.minutesLeft > 0) ? first.minutesLeft : 5;
+      order.closesAt = Date.now() + mins * 60000;
+    }
   }
   list.unshift(order);
   saveSupplierOrders(list);
