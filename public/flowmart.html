@@ -1028,6 +1028,31 @@ let currentCategoryFilter = 'ทั้งหมด';
 let currentSearchQuery = '';
 let detectedProvince = 'ปทุมธานี';
 let clientTrustScore = 100;
+const DEAL_DEADLINES_KEY = 'flowmart_product_deal_deadlines_v1';
+
+function getDealDeadlines() {
+  let map = {};
+  try { map = JSON.parse(localStorage.getItem(DEAL_DEADLINES_KEY) || '{}'); } catch { map = {}; }
+  let changed = false;
+  const now = Date.now();
+  DATA.forEach(item => {
+    if (!map[item.id]) {
+      map[item.id] = item.minutesLeft > 0 ? now + item.minutesLeft * 60000 : now;
+      changed = true;
+    }
+  });
+  if (changed) localStorage.setItem(DEAL_DEADLINES_KEY, JSON.stringify(map));
+  return map;
+}
+
+function getProductClosesAt(productId) {
+  return getDealDeadlines()[productId] || Date.now();
+}
+
+function getProductTimeLabel(item) {
+  const remain = getProductClosesAt(item.id) - Date.now();
+  return remain <= 0 ? 'ปิดดีลสำเร็จ' : fmtCountdown(remain);
+}
 
 function detectUserLocation() {
   const badge = document.getElementById('user-location');
@@ -1337,7 +1362,7 @@ function renderMarket() {
     container.innerHTML += `
       <div class="product-card">
         <div class="badge-ribbon ${item.status}">${item.statusText}</div>
-        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ ${item.timeText}</div></div>
+        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
         <div class="prod-details">
           <div>
             <div class="prod-name">${item.name}</div>
@@ -1361,6 +1386,20 @@ function renderMarket() {
       </div>`;
   });
   updateCartSummary();
+  startMarketTicker();
+}
+
+let marketTickTimer = null;
+function startMarketTicker() {
+  if (marketTickTimer) clearInterval(marketTickTimer);
+  marketTickTimer = setInterval(() => {
+    const pageEl = document.getElementById('page-market');
+    if (!pageEl || !pageEl.classList.contains('active')) return;
+    document.querySelectorAll('#market-products [data-product-closesat]').forEach(el => {
+      const t = Number(el.getAttribute('data-product-closesat'));
+      el.textContent = t - Date.now() <= 0 ? 'ปิดดีลสำเร็จ' : fmtCountdown(t - Date.now());
+    });
+  }, 1000);
 }
 
 function updateQty(id, delta) {
@@ -1557,26 +1596,30 @@ function executeCheckout() {
   }
   const address = { detail, subdistrict: subdist, district: dist, province: prov, zip };
   const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
-  const byCat = {};
+  const byProduct = {};
   validItems.forEach(it => {
-    (byCat[it.cat] = byCat[it.cat] || []).push(it);
+    (byProduct[it.id] = byProduct[it.id] || []).push(it);
   });
   let createdCount = 0;
-  Object.entries(byCat).forEach(([cat, items]) => {
+  Object.values(byProduct).forEach((items) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
-      // ส่ง minutesLeft ของสินค้าไปด้วย เพื่อให้ closesAt ในบิลตรงกับที่หน้าตลาดแสดง
-      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, minutesLeft: it.minutesLeft };
+      const closesAt = getProductClosesAt(it.id);
+      // ส่ง closesAt จริงของสินค้าไปด้วย เพื่อให้หน้าลูกค้า/โรงงานนับเวลาจากชุดเดียวกัน
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, closesAt };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
+    const firstItem = items[0];
+    const closesAt = orderItems[0]?.closesAt || Date.now();
     const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
+      closesAt,
       customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
       customerName: shopName,
       contact: (currentUser && currentUser.phone) || '-',
       address,
-      category: cat,
+      category: firstItem.cat,
       items: orderItems,
       totalAmount,
       depositAmount: Math.round(totalAmount * 0.3),
@@ -1612,9 +1655,7 @@ function addSupplierOrder(order) {
     if (existing) {
       order.closesAt = existing.closesAt;
     } else {
-      // ใช้ minutesLeft ของสินค้าเอง เพื่อให้ตรงกับเวลาที่แสดงในหน้าตลาด/ตะกร้า
-      const mins = (typeof first.minutesLeft === 'number' && first.minutesLeft > 0) ? first.minutesLeft : 5;
-      order.closesAt = Date.now() + mins * 60000;
+      order.closesAt = first.closesAt || getProductClosesAt(itemId);
     }
   }
   list.unshift(order);
@@ -1679,7 +1720,11 @@ function autoCloseExpiredOrders() {
 }
 function supplierOwnsOrder(o, me) {
   if (!o || !me) return false;
-  if (me.productId) return (o.items || []).some(i => i.id === me.productId);
+  if (me.productId) {
+    const owns = (o.items || []).some(i => i.id === me.productId);
+    if (owns) return true;
+    return Boolean(me.category && o.category === me.category && (o.items || []).every(i => !i.id));
+  }
   if (me.category) return o.category === me.category;
   return false;
 }
