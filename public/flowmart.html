@@ -1505,6 +1505,36 @@ function cancelOrder(id) {
   showToast(`⚠️ ถอนตัวจากดีลกลุ่มแล้ว (คะแนนพฤติกรรมถูกหักออก)`);
 }
 
+/* ยกเลิกบิลที่ยืนยันแล้ว (ลบทั้งฝั่งลูกค้า + ฝั่งโรงงาน) — ล็อกเมื่อเหลือ < 30 นาที */
+function cancelHistoryOrder(orderId) {
+  const supplierList = getSupplierOrders();
+  const target = supplierList.find(o => o.id === orderId);
+  if (target) {
+    if (target.status !== 'pending') {
+      showToast('⛔ ดีลปิดไปแล้ว ยกเลิกไม่ได้');
+      return;
+    }
+    const remain = target.closesAt ? target.closesAt - Date.now() : 0;
+    if (remain <= 30 * 60000) {
+      showToast('🔒 เหลือเวลาน้อยกว่า 30 นาที — ระบบล็อกการยกเลิกแล้ว');
+      return;
+    }
+  }
+  if (!confirm('ยืนยันยกเลิกบิลนี้? คะแนนพฤติกรรมจะถูกหัก')) return;
+
+  // ลบฝั่งโรงงาน
+  saveSupplierOrders(supplierList.filter(o => o.id !== orderId));
+  // ลบฝั่งลูกค้า
+  try {
+    const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
+    localStorage.setItem(CUSTOMER_ORDERS_KEY, JSON.stringify(all.filter(o => o.id !== orderId)));
+  } catch {}
+  updateTrustScore(25);
+  updateCartSummary();
+  renderReceipt();
+  showToast('⚠️ ยกเลิกบิลเรียบร้อย (คะแนนพฤติกรรมถูกหัก)');
+}
+
 function executeCheckout() {
   if(clientTrustScore < 40) {
     showToast("⚠️ บัญชีถูกระงับสิทธิ์ ไม่สามารถยืนยันคำสั่งซื้อได้");
@@ -1535,7 +1565,8 @@ function executeCheckout() {
   Object.entries(byCat).forEach(([cat, items]) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
-      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
+      // ส่ง minutesLeft ของสินค้าไปด้วย เพื่อให้ closesAt ในบิลตรงกับที่หน้าตลาดแสดง
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, minutesLeft: it.minutesLeft };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
     const order = {
@@ -1575,9 +1606,16 @@ function addSupplierOrder(order) {
   const list = getSupplierOrders();
   // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
   if (!order.closesAt) {
-    const itemId = order.items[0] && order.items[0].id;
+    const first = order.items[0] || {};
+    const itemId = first.id;
     const existing = list.find(o => o.status === 'pending' && o.items[0] && o.items[0].id === itemId && o.closesAt && o.closesAt > Date.now());
-    order.closesAt = existing ? existing.closesAt : Date.now() + 1000 * 60 * 5; // ดีลใหม่: 5 นาที (เดโม)
+    if (existing) {
+      order.closesAt = existing.closesAt;
+    } else {
+      // ใช้ minutesLeft ของสินค้าเอง เพื่อให้ตรงกับเวลาที่แสดงในหน้าตลาด/ตะกร้า
+      const mins = (typeof first.minutesLeft === 'number' && first.minutesLeft > 0) ? first.minutesLeft : 5;
+      order.closesAt = Date.now() + mins * 60000;
+    }
   }
   list.unshift(order);
   saveSupplierOrders(list);
