@@ -1028,6 +1028,31 @@ let currentCategoryFilter = 'ทั้งหมด';
 let currentSearchQuery = '';
 let detectedProvince = 'ปทุมธานี';
 let clientTrustScore = 100;
+const DEAL_DEADLINES_KEY = 'flowmart_product_deal_deadlines_v1';
+
+function getDealDeadlines() {
+  let map = {};
+  try { map = JSON.parse(localStorage.getItem(DEAL_DEADLINES_KEY) || '{}'); } catch { map = {}; }
+  let changed = false;
+  const now = Date.now();
+  DATA.forEach(item => {
+    if (!map[item.id]) {
+      map[item.id] = item.minutesLeft > 0 ? now + item.minutesLeft * 60000 : now;
+      changed = true;
+    }
+  });
+  if (changed) localStorage.setItem(DEAL_DEADLINES_KEY, JSON.stringify(map));
+  return map;
+}
+
+function getProductClosesAt(productId) {
+  return getDealDeadlines()[productId] || Date.now();
+}
+
+function getProductTimeLabel(item) {
+  const remain = getProductClosesAt(item.id) - Date.now();
+  return remain <= 0 ? 'ปิดดีลสำเร็จ' : fmtCountdown(remain);
+}
 
 function detectUserLocation() {
   const badge = document.getElementById('user-location');
@@ -1337,7 +1362,7 @@ function renderMarket() {
     container.innerHTML += `
       <div class="product-card">
         <div class="badge-ribbon ${item.status}">${item.statusText}</div>
-        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ ${item.timeText}</div></div>
+        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
         <div class="prod-details">
           <div>
             <div class="prod-name">${item.name}</div>
@@ -1361,6 +1386,20 @@ function renderMarket() {
       </div>`;
   });
   updateCartSummary();
+  startMarketTicker();
+}
+
+let marketTickTimer = null;
+function startMarketTicker() {
+  if (marketTickTimer) clearInterval(marketTickTimer);
+  marketTickTimer = setInterval(() => {
+    const pageEl = document.getElementById('page-market');
+    if (!pageEl || !pageEl.classList.contains('active')) return;
+    document.querySelectorAll('#market-products [data-product-closesat]').forEach(el => {
+      const t = Number(el.getAttribute('data-product-closesat'));
+      el.textContent = t - Date.now() <= 0 ? 'ปิดดีลสำเร็จ' : fmtCountdown(t - Date.now());
+    });
+  }, 1000);
 }
 
 function updateQty(id, delta) {
