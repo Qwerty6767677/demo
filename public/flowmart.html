@@ -655,6 +655,8 @@
   .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 10px 25px -10px rgba(15,118,110,.6); }
   .auth-error { background: #fef2f2; color: #b91c1c; font-size: 12px; padding: 8px 11px; border-radius: 8px; margin-bottom: 10px; display: none; }
   .auth-error.show { display: block; }
+  .auth-remember { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; color: #475569; font-size: 12px; font-weight: 700; }
+  .auth-remember input { width: 16px; height: 16px; accent-color: #0f766e; }
   .auth-foot { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 14px; }
   .btn-logout { width: 100%; padding: 10px; margin-top: 10px; background: #fee2e2; color: #b91c1c; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .btn-logout:hover { background: #fecaca; }
@@ -1400,7 +1402,8 @@ async function sendChatMessage() {
 
 // ============ AUTH SYSTEM ============
 const AUTH_USERS_KEY = 'flowmart_users';
-const AUTH_SESSION_KEY = 'flowmart_session_v2';
+const AUTH_SESSION_KEY = 'flowmart_session_v3';
+const AUTH_REMEMBER_KEY = 'flowmart_remembered_email';
 let currentUser = null;
 
 function getUsers() { try { return JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || '{}'); } catch { return {}; } }
@@ -1436,21 +1439,24 @@ function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pw = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
   const users = getUsers();
   if (!users[email]) return showAuthError('ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิก');
   if (users[email].password !== pw) return showAuthError('รหัสผ่านไม่ถูกต้อง');
+  if (remember) localStorage.setItem(AUTH_REMEMBER_KEY, email);
+  else localStorage.removeItem(AUTH_REMEMBER_KEY);
   loginAs(email, users[email].name);
   showToast(`👋 ยินดีต้อนรับกลับคุณ ${users[email].name}`);
   return false;
 }
 function loginAs(email, name) {
   currentUser = { email, name };
-  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(currentUser));
   document.getElementById('auth-overlay').classList.remove('open');
   applyUserToUI();
 }
 function handleLogout() {
   localStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
   currentUser = null;
   document.getElementById('account-modal-layer').classList.remove('open');
   document.getElementById('auth-overlay').classList.add('open');
@@ -1470,16 +1476,23 @@ function applyUserToUI() {
   chip.textContent = '👤 ' + currentUser.name;
 }
 function initAuth() {
-  try {
-    const s = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || 'null');
-    if (s && s.email) { currentUser = s; applyUserToUI(); return; }
-  } catch {}
+  localStorage.removeItem('flowmart_session');
+  localStorage.removeItem('flowmart_session_v2');
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  const rememberedEmail = localStorage.getItem(AUTH_REMEMBER_KEY) || '';
+  const emailInput = document.getElementById('login-email');
+  const rememberInput = document.getElementById('login-remember');
+  if (emailInput) emailInput.value = rememberedEmail;
+  if (rememberInput) rememberInput.checked = Boolean(rememberedEmail);
   document.getElementById('auth-overlay').classList.add('open');
 }
 
-detectUserLocation();
-renderMarket();
-initAuth();
+document.addEventListener('DOMContentLoaded', () => {
+  detectUserLocation();
+  renderMarket();
+  initAuth();
+});
 </script>
 
 <div class="auth-overlay" id="auth-overlay">
@@ -1501,6 +1514,10 @@ initAuth();
         <label>รหัสผ่าน</label>
         <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" required>
       </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="login-remember">
+        จดจำอีเมลนี้ไว้
+      </label>
       <button type="submit" class="auth-submit">เข้าสู่ระบบ</button>
     </form>
 
