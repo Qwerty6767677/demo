@@ -661,6 +661,58 @@
   .btn-logout { width: 100%; padding: 10px; margin-top: 10px; background: #fee2e2; color: #b91c1c; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .btn-logout:hover { background: #fecaca; }
   .user-chip { font-size: 11px; color: #0f766e; background: #ccfbf1; padding: 4px 9px; border-radius: 99px; margin-right: 6px; font-weight: 700; }
+  .user-chip.supplier { color: #6b21a8; background: #f3e8ff; }
+
+  /* role-based visibility */
+  body.role-supplier #sub-tab-market,
+  body.role-supplier #sub-tab-orders,
+  body.role-supplier #sub-tab-dashboard,
+  body.role-supplier .mall-cart-bar,
+  body.role-supplier .nike-nav-container { display: none !important; }
+  body:not(.role-supplier) #sub-tab-supplier { display: none !important; }
+
+  /* signup type chooser */
+  .type-chooser { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .type-opt { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 8px; text-align: center; cursor: pointer; transition: all .15s; background: #fff; }
+  .type-opt .ic { font-size: 22px; }
+  .type-opt .tt { font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+  .type-opt .ds { font-size: 10px; color: #64748b; margin-top: 1px; }
+  .type-opt.active { border-color: #0f766e; background: #ecfeff; box-shadow: 0 0 0 3px rgba(15,118,110,.12); }
+  .auth-field select, .auth-field textarea { width: 100%; padding: 11px 13px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; box-sizing: border-box; resize: vertical; }
+
+  /* supplier dashboard */
+  .sup-hero { background: linear-gradient(135deg,#312e81,#6d28d9); color: #fff; padding: 22px; border-radius: 20px; margin-bottom: 16px; box-shadow: 0 20px 40px -16px rgba(109,40,217,.4); }
+  .sup-hero .lbl { font-size: 11px; opacity: .75; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .sup-hero .ttl { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  .sup-hero .sub { font-size: 13px; opacity: .8; margin-top: 4px; }
+  .sup-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 18px; }
+  .sup-stats .sc { background: rgba(255,255,255,.12); backdrop-filter: blur(6px); padding: 12px; border-radius: 12px; }
+  .sup-stats .sc .v { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
+  .sup-stats .sc .l { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+  .order-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-xs); }
+  .order-card.closed { background: #f0fdf4; border-color: #bbf7d0; }
+  .order-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 10px; flex-wrap: wrap; }
+  .order-head .who { font-weight: 800; font-size: 14px; color: #0f172a; }
+  .order-head .meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .order-status { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: .5px; }
+  .order-status.pending { background: #fef3c7; color: #b45309; }
+  .order-status.closed { background: #dcfce7; color: #15803d; }
+  .order-items { font-size: 12px; color: var(--text-soft); display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); margin: 8px 0; }
+  .order-items .row { display: flex; justify-content: space-between; gap: 10px; }
+  .order-items .row .nm { flex: 1; }
+  .order-items .row .am { font-family: var(--font-mono); font-weight: 700; color: var(--text); }
+  .order-total { display: flex; justify-content: space-between; align-items: center; }
+  .order-total .lbl { font-size: 12px; color: var(--text-muted); font-weight: 700; }
+  .order-total .amt { font-family: var(--font-mono); font-weight: 800; font-size: 18px; color: var(--primary); }
+  .order-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn-close-deal, .btn-print { flex: 1; min-width: 140px; padding: 10px; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .btn-close-deal { background: linear-gradient(135deg,#15803d,#22c55e); color: #fff; }
+  .btn-close-deal:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -10px rgba(34,197,94,.55); }
+  .btn-print { background: #0f172a; color: #fff; }
+  .btn-print:hover { background: #000; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+  .empty-state .ic { font-size: 40px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
