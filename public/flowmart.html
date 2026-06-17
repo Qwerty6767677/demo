@@ -1547,7 +1547,7 @@ function cancelOrder(id) {
 }
 
 /* ยกเลิกบิลที่ยืนยันแล้ว (ลบทั้งฝั่งลูกค้า + ฝั่งโรงงาน) — ล็อกเมื่อเหลือ < 30 นาที */
-function cancelHistoryOrder(orderId) {
+async function cancelHistoryOrder(orderId) {
   const supplierList = getSupplierOrders();
   const target = supplierList.find(o => o.id === orderId);
   if (target) {
@@ -1565,6 +1565,7 @@ function cancelHistoryOrder(orderId) {
 
   // ลบฝั่งโรงงาน
   saveSupplierOrders(supplierList.filter(o => o.id !== orderId));
+  try { await deleteCloudOrder(orderId); } catch(e) { console.warn('delete cloud order failed', e); }
   // ลบฝั่งลูกค้า
   try {
     const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
@@ -1762,6 +1763,7 @@ function autoCloseExpiredOrders() {
       o.status = 'closed';
       o.closedAt = o.closesAt;
       changed = true;
+      syncOrderToCloud(o, 'PATCH').catch(e => console.warn('close cloud order failed', e));
     }
   });
   if (changed) saveSupplierOrders(list);
