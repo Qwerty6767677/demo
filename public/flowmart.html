@@ -881,6 +881,7 @@
           <select id="factory-product" class="factory-select"></select>
         </div>
         <button class="factory-btn" onclick="generateFactoryReport()" id="factory-btn">📄 วิเคราะห์ด้วย AI + สร้าง PDF</button>
+        <button class="factory-btn" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);" onclick="showSampleReport()">🎁 ดูตัวอย่างรายงาน</button>
       </div>
 
       <div id="factory-preview" class="factory-preview" style="display:none;">
@@ -1253,6 +1254,36 @@ ${rows.map((r,i)=>`${i+1}. ${r.name} — ${r.addr} | ระยะ ${r.dist.toFix
 
   // เปิดหน้าต่าง print → user save เป็น PDF
   openFactoryPdf({ province, product, rows, totalQty, aiText });
+}
+
+function showSampleReport() {
+  initFactoryPage();
+  document.getElementById('factory-province').value = 'ปทุมธานี';
+  document.getElementById('factory-product').value = 'oil';
+  const product = FACTORY_PRODUCTS.find(p => p.id === 'oil');
+  const rows = buildShopRows('ปทุมธานี', 'oil');
+  const totalQty = rows.reduce((s,r)=>s+r.qty, 0);
+  const totalDist = rows.reduce((s,r)=>s+r.dist, 0);
+  const aiText = `ภาพรวม: ต้องส่งน้ำมันพืชปาล์ม มรกต 1L จำนวน ${totalQty} ลัง ให้ ${rows.length} ร้านใน จ.ปทุมธานี รวมระยะ ${totalDist.toFixed(1)} กม.
+ร้านไกลที่สุดคือ "${rows[0].name}" (${rows[0].dist.toFixed(1)} กม.) และใกล้ที่สุดคือ "${rows[rows.length-1].name}" (${rows[rows.length-1].dist.toFixed(1)} กม.)
+แนะนำเส้นทาง: เริ่มจากร้านไกลสุดก่อน (โซนลำลูกกา-คลองหลวง) แล้วทยอยเข้าด้านในเมือง เพื่อลดน้ำหนักรถบรรทุกและหลีกเลี่ยงรถติดช่วงเย็นในเขตเมือง
+ข้อควรระวัง: ช่วง 16:00-19:00 ถนนรังสิต-นครนายก และรามอินทรามักติดหนัก ควรออกจากฮับก่อน 09:00 และทำรอบให้เสร็จก่อน 15:00
+
+(★ นี่คือตัวอย่างรายงาน — กดปุ่ม "วิเคราะห์ด้วย AI + สร้าง PDF" เพื่อให้ AI สรุปสดจริง)`;
+
+  // แสดง preview ในหน้าจอ
+  document.getElementById('factory-preview').style.display = 'block';
+  document.getElementById('fp-title').textContent = `${product.name} — จ.ปทุมธานี (ตัวอย่าง)`;
+  document.getElementById('fp-sub').textContent = `ออกจาก ${FACTORY_BASE.name} · ${rows.length} ร้านค้า · เรียงจากไกลที่สุด → ใกล้ที่สุด`;
+  document.getElementById('fp-orders').textContent = `${totalQty} ${product.unit}`;
+  document.getElementById('fp-rows').innerHTML = rows.map((r,i)=>`
+    <tr><td><b>${i+1}</b></td><td><div class="nm">${escapeHtml(r.name)}</div></td>
+    <td>${escapeHtml(r.addr)}</td>
+    <td class="dist">${r.dist.toFixed(1)} กม.</td>
+    <td class="qty">${r.qty}</td></tr>`).join('');
+  document.getElementById('fp-ai').textContent = aiText;
+
+  openFactoryPdf({ province: 'ปทุมธานี', product, rows, totalQty, aiText });
 }
 
 function openFactoryPdf({ province, product, rows, totalQty, aiText }) {
