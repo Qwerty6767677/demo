@@ -1662,7 +1662,7 @@ function renderSupplierDashboard() {
     const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
     if (snap !== lastSnapshot) {
       lastSnapshot = snap;
-      const newCount = getSupplierOrders().filter(o => o.category === me.category).length - mine.length;
+      const newCount = getSupplierOrders().filter(o => supplierOwnsOrder(o, me)).length - mine.length;
       if (newCount > 0) showToast(`🔔 มีคำสั่งซื้อใหม่ ${newCount} รายการ`);
       renderSupplierDashboard();
       return;
@@ -1699,7 +1699,7 @@ function viewCustomerAddress(orderId) {
 
 async function planDeliveryRoute() {
   const me = getUsers()[currentUser.email] || {};
-  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  const closed = getSupplierOrders().filter(o => supplierOwnsOrder(o, me) && o.status === "closed");
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
   const origin = me.supplierAddress || 'โรงงาน (กรุณาระบุที่อยู่โรงงานในโปรไฟล์)';
   const stopList = closed.map((o, i) => `${i + 1}. ${o.customerName} — ${o.address.detail} ต.${o.address.subdistrict} อ.${o.address.district} จ.${o.address.province} ${o.address.zip}`).join('\n');
@@ -1736,7 +1736,7 @@ function showRouteModal(title, bodyHtml) {
 
 function printAllClosedPDF() {
   const me = getUsers()[currentUser.email] || {};
-  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  const closed = getSupplierOrders().filter(o => supplierOwnsOrder(o, me) && o.status === "closed");
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
   const supplier = me;
   const w = window.open('', '_blank', 'width=900,height=1000');
