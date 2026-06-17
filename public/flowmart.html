@@ -1720,7 +1720,11 @@ function autoCloseExpiredOrders() {
 }
 function supplierOwnsOrder(o, me) {
   if (!o || !me) return false;
-  if (me.productId) return (o.items || []).some(i => i.id === me.productId);
+  if (me.productId) {
+    const owns = (o.items || []).some(i => i.id === me.productId);
+    if (owns) return true;
+    return Boolean(me.category && o.category === me.category && (o.items || []).length === 1);
+  }
   if (me.category) return o.category === me.category;
   return false;
 }
@@ -1756,6 +1760,15 @@ function renderSupplierDashboard() {
       <button class="sup-tool-btn bulk" onclick="printAllClosedPDF()" ${closed.length === 0 ? 'disabled' : ''}>
         📑 พิมพ์สรุปรวมทั้งหมด (PDF) <span class="cnt">${closed.length}</span>
       </button>`;
+  }
+
+  const hasUnmatched = all.some(o => !mine.includes(o) && me.category && o.category === me.category && (o.items || []).some(i => i.id === me.productId));
+  if (hasUnmatched) {
+    const fixed = all.map(o => {
+      if (me.category && o.category === me.category && (o.items || []).some(i => i.id === me.productId)) o.category = me.category;
+      return o;
+    });
+    saveSupplierOrders(fixed);
   }
 
   const list = document.getElementById('supplier-orders-list');
