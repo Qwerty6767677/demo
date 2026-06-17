@@ -637,9 +637,9 @@
     .products-grid { grid-template-columns: repeat(4, 1fr); }
   }
   /* ============ AUTH ============ */
-  .auth-overlay { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg,#0f172a,#1e293b 60%,#0f766e); display: none; align-items: center; justify-content: center; padding: 18px; }
+  .auth-overlay { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg,#0f172a,#1e293b 60%,#0f766e); display: none; align-items: flex-start; justify-content: center; padding: 18px; overflow-y: auto; }
   .auth-overlay.open { display: flex; }
-  .auth-card { width: 100%; max-width: 400px; background: #fff; border-radius: 20px; padding: 28px 22px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); animation: authPop .35s cubic-bezier(.16,1,.3,1); }
+  .auth-card { width: 100%; max-width: 400px; background: #fff; border-radius: 20px; padding: 28px 22px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); animation: authPop .35s cubic-bezier(.16,1,.3,1); margin: auto 0; }
   @keyframes authPop { from { transform: translateY(20px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
   .auth-brand { text-align: center; font-size: 22px; font-weight: 800; color: #0f172a; }
   .auth-brand span { color: #0f766e; }
