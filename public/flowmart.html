@@ -1365,7 +1365,7 @@ function renderMarket() {
     container.innerHTML += `
       <div class="product-card">
         <div class="badge-ribbon ${item.status}">${item.statusText}</div>
-        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
+        <div class="prod-img-box">${item.img ? `<img src="${item.img}" alt="${escapeHtml(item.name)}" loading="lazy">` : item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
         <div class="prod-details">
           <div>
             <div class="prod-name">${item.name}</div>
