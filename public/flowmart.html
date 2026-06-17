@@ -1431,7 +1431,8 @@ function handleSignup(e) {
   if (users[email]) return showAuthError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
   users[email] = { name, password: pw, createdAt: Date.now() };
   saveUsers(users);
-  loginAs(email, name);
+  localStorage.setItem(AUTH_REMEMBER_KEY, email);
+  loginAs(email, name, true);
   showToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
   return false;
 }
