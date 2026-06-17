@@ -1549,6 +1549,12 @@ function autoCloseExpiredOrders() {
   if (changed) saveSupplierOrders(list);
   return changed;
 }
+function supplierOwnsOrder(o, me) {
+  if (!o || !me) return false;
+  if (me.productId) return (o.items || []).some(i => i.id === me.productId);
+  if (me.category) return o.category === me.category;
+  return false;
+}
 function renderSupplierDashboard() {
   if (!currentUser || currentUser.type !== 'supplier') return;
   autoCloseExpiredOrders();
