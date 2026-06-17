@@ -1483,6 +1483,12 @@ function saveSupplierOrders(list) {
 }
 function addSupplierOrder(order) {
   const list = getSupplierOrders();
+  // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
+  if (!order.closesAt) {
+    const itemId = order.items[0] && order.items[0].id;
+    const existing = list.find(o => o.status === 'pending' && o.items[0] && o.items[0].id === itemId && o.closesAt && o.closesAt > Date.now());
+    order.closesAt = existing ? existing.closesAt : Date.now() + 1000 * 60 * 5; // ดีลใหม่: 5 นาที (เดโม)
+  }
   list.unshift(order);
   saveSupplierOrders(list);
 }
