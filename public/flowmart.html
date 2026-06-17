@@ -1404,7 +1404,256 @@ function executeCheckout() {
     toggleAccountModal();
     return;
   }
-  showToast(`🎉 ยืนยันสัญญากลุ่มพิกัดพื้นที่ จ.${detectedProvince} ไปยังโรงงานหลักแล้ว`);
+  const validItems = DATA.filter(x => x.myQty >= x.min);
+  if (validItems.length === 0) {
+    showToast("⚠️ ยังไม่มีรายการที่ถึงขั้นต่ำสำหรับยืนยัน");
+    return;
+  }
+  const address = {
+    detail,
+    subdistrict: document.getElementById('input-subdistrict').value,
+    district: document.getElementById('input-district').value,
+    province: document.getElementById('input-province').value,
+    zip: document.getElementById('input-zipcode').value,
+  };
+  const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
+  const byCat = {};
+  validItems.forEach(it => {
+    (byCat[it.cat] = byCat[it.cat] || []).push(it);
+  });
+  Object.entries(byCat).forEach(([cat, items]) => {
+    const orderItems = items.map(it => {
+      const price = getActiveTier(it).p;
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
+    });
+    const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
+    addSupplierOrder({
+      id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+      ts: Date.now(),
+      customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
+      customerName: shopName,
+      address,
+      category: cat,
+      items: orderItems,
+      totalAmount,
+      depositAmount: Math.round(totalAmount * 0.3),
+      status: 'pending',
+    });
+  });
+  validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
+  updateCartCount();
+  renderMarket();
+  showToast(`🎉 ส่งคำสั่งซื้อ ${validItems.length} รายการไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว`);
+}
+
+/* ============ SUPPLIER ORDERS STORE ============ */
+const SUPPLIER_ORDERS_KEY = 'flowmart_supplier_orders';
+function getSupplierOrders() {
+  try { return JSON.parse(localStorage.getItem(SUPPLIER_ORDERS_KEY) || '[]'); } catch { return []; }
+}
+function saveSupplierOrders(list) {
+  localStorage.setItem(SUPPLIER_ORDERS_KEY, JSON.stringify(list));
+}
+function addSupplierOrder(order) {
+  const list = getSupplierOrders();
+  list.unshift(order);
+  saveSupplierOrders(list);
+}
+function seedSupplierOrdersIfEmpty() {
+  if (getSupplierOrders().length > 0) return;
+  const seeds = [
+    { id: 'ORD-DEMO-001', ts: Date.now() - 86400000, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย',
+      address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
+      category: 'ของแห้ง',
+      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
+      totalAmount: 2475, depositAmount: 742, status: 'pending' },
+    { id: 'ORD-DEMO-002', ts: Date.now() - 3600000, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี',
+      address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
+      category: 'เครื่องดื่ม',
+      items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
+      totalAmount: 2760, depositAmount: 828, status: 'pending' },
+    { id: 'ORD-DEMO-003', ts: Date.now() - 7200000, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ',
+      address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
+      category: 'ขนม',
+      items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
+      totalAmount: 1800, depositAmount: 540, status: 'pending' },
+  ];
+  saveSupplierOrders(seeds);
+}
+
+/* ============ SUPPLIER DASHBOARD ============ */
+function renderSupplierDashboard() {
+  if (!currentUser || currentUser.type !== 'supplier') return;
+  const users = getUsers();
+  const me = users[currentUser.email] || {};
+  document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
+  document.getElementById('sup-company-meta').textContent = `หมวดสินค้า: ${me.category || '—'} · ${me.productDesc || ''}`;
+
+  const all = getSupplierOrders();
+  const mine = all.filter(o => o.category === me.category);
+  const pending = mine.filter(o => o.status === 'pending');
+  const closed = mine.filter(o => o.status === 'closed');
+  const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
+  document.getElementById('sup-stat-total').textContent = mine.length;
+  document.getElementById('sup-stat-pending').textContent = pending.length;
+  document.getElementById('sup-stat-closed').textContent = closed.length;
+  document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
+
+  const list = document.getElementById('supplier-orders-list');
+  if (mine.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
+    return;
+  }
+  list.innerHTML = mine.map(o => `
+    <div class="order-card ${o.status}">
+      <div class="order-head">
+        <div>
+          <div class="who">${escapeHtml(o.customerName)}</div>
+          <div class="meta">${o.id} · ${new Date(o.ts).toLocaleString('th-TH')} · ${escapeHtml(o.address.province)}</div>
+        </div>
+        <span class="order-status ${o.status}">${o.status === 'closed' ? '✓ ปิดดีลแล้ว' : '⏳ รอปิดดีล'}</span>
+      </div>
+      <div class="order-items">
+        ${o.items.map(i => `<div class="row"><span class="nm">${escapeHtml(i.name)} × ${i.qty} ${escapeHtml(i.unit)}</span><span class="am">฿${i.total.toLocaleString()}</span></div>`).join('')}
+      </div>
+      <div class="order-total">
+        <span class="lbl">ยอดรวม (มัดจำ 30%: ฿${o.depositAmount.toLocaleString()})</span>
+        <span class="amt">฿${o.totalAmount.toLocaleString()}</span>
+      </div>
+      <div class="order-actions">
+        ${o.status === 'pending'
+          ? `<button class="btn-close-deal" onclick="closeDeal('${o.id}')">✓ สรุปและปิดดีล</button>`
+          : ''}
+        <button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeDeal(orderId) {
+  const list = getSupplierOrders();
+  const o = list.find(x => x.id === orderId);
+  if (!o) return;
+  o.status = 'closed';
+  o.closedAt = Date.now();
+  saveSupplierOrders(list);
+  renderSupplierDashboard();
+  showToast(`✅ ปิดดีลคำสั่งซื้อ ${orderId} เรียบร้อย พร้อมพิมพ์เอกสารส่งของได้เลย`);
+}
+
+function printOrderPDF(orderId) {
+  const o = getSupplierOrders().find(x => x.id === orderId);
+  if (!o) return;
+  const users = getUsers();
+  const supplier = (currentUser && users[currentUser.email]) || {};
+  const w = window.open('', '_blank', 'width=800,height=900');
+  if (!w) { showToast('⚠️ เบราว์เซอร์บล็อกป๊อปอัป กรุณาอนุญาต'); return; }
+  const itemsRows = o.items.map((i, idx) => `
+    <tr>
+      <td style="text-align:center;">${idx + 1}</td>
+      <td>${i.name}<div style="font-size:11px;color:#64748b;">${i.unit}</div></td>
+      <td style="text-align:center;">${i.qty}</td>
+      <td style="text-align:right;">฿${i.price.toLocaleString()}</td>
+      <td style="text-align:right;">฿${i.total.toLocaleString()}</td>
+    </tr>`).join('');
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8">
+    <title>สรุปคำสั่งซื้อ ${o.id}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif;}
+      body{padding:40px;color:#0f172a;font-size:13px;background:#fff;}
+      .doc{max-width:720px;margin:0 auto;}
+      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:16px;margin-bottom:20px;}
+      .hd h1{font-size:24px;font-weight:800;}
+      .hd .meta{text-align:right;font-size:12px;color:#475569;}
+      .hd .meta strong{color:#0f172a;font-size:14px;}
+      .block{margin-bottom:18px;padding:14px;border:1px solid #e2e8f0;border-radius:10px;}
+      .block h3{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:800;}
+      .block .nm{font-size:15px;font-weight:800;margin-bottom:4px;}
+      .block .ad{font-size:13px;color:#334155;line-height:1.6;}
+      .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+      table{width:100%;border-collapse:collapse;margin-top:8px;}
+      th{background:#0f172a;color:#fff;padding:10px;text-align:left;font-size:12px;font-weight:700;}
+      td{padding:10px;border-bottom:1px solid #e2e8f0;font-size:13px;vertical-align:top;}
+      tfoot td{font-weight:800;border-top:2px solid #0f172a;border-bottom:none;font-size:14px;}
+      .total-box{background:#0f172a;color:#fff;padding:14px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+      .total-box .amt{font-size:22px;font-weight:800;}
+      .sig{margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+      .sig .line{border-top:1px solid #0f172a;padding-top:6px;text-align:center;font-size:11px;color:#64748b;}
+      .ft{margin-top:24px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px dashed #cbd5e1;padding-top:12px;}
+      @media print { body{padding:20px;} .noprint{display:none;} }
+      .actions{text-align:center;margin-bottom:18px;}
+      .actions button{padding:10px 22px;margin:0 4px;border:0;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;}
+      .actions .p{background:#0f172a;color:#fff;}
+      .actions .c{background:#e2e8f0;color:#0f172a;}
+    </style></head><body>
+    <div class="actions noprint">
+      <button class="p" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="c" onclick="window.close()">ปิด</button>
+    </div>
+    <div class="doc">
+      <div class="hd">
+        <div>
+          <h1>🛒 Flowmart</h1>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">ใบสรุปคำสั่งซื้อจากดีลกลุ่ม</div>
+        </div>
+        <div class="meta">
+          <strong>เลขที่: ${o.id}</strong><br>
+          วันที่: ${new Date(o.ts).toLocaleString('th-TH')}<br>
+          ${o.closedAt ? 'ปิดดีล: ' + new Date(o.closedAt).toLocaleString('th-TH') : 'สถานะ: รอปิดดีล'}
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="block">
+          <h3>🏭 ผู้ขาย / โรงงาน</h3>
+          <div class="nm">${escapeHtml(supplier.company || supplier.name || '-')}</div>
+          <div class="ad">หมวด: ${escapeHtml(supplier.category || '-')}<br>
+          ${escapeHtml(supplier.productDesc || '')}<br>
+          ${escapeHtml(supplier.supplierAddress || '')}<br>
+          ☎ ${escapeHtml(supplier.contact || '-')}<br>
+          📧 ${escapeHtml(currentUser ? currentUser.email : '-')}</div>
+        </div>
+        <div class="block">
+          <h3>🛍️ ลูกค้า / ผู้สั่งซื้อ</h3>
+          <div class="nm">${escapeHtml(o.customerName)}</div>
+          <div class="ad">
+          ${escapeHtml(o.address.detail)}<br>
+          ต.${escapeHtml(o.address.subdistrict)} อ.${escapeHtml(o.address.district)}<br>
+          จ.${escapeHtml(o.address.province)} ${escapeHtml(o.address.zip)}<br>
+          📧 ${escapeHtml(o.customerEmail)}</div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h3>📦 รายการสินค้า</h3>
+        <table>
+          <thead><tr><th style="width:40px;text-align:center;">#</th><th>สินค้า</th><th style="width:70px;text-align:center;">จำนวน</th><th style="width:90px;text-align:right;">ราคา/หน่วย</th><th style="width:110px;text-align:right;">รวม</th></tr></thead>
+          <tbody>${itemsRows}</tbody>
+          <tfoot><tr><td colspan="4" style="text-align:right;">ยอดรวมทั้งสิ้น</td><td style="text-align:right;">฿${o.totalAmount.toLocaleString()}</td></tr></tfoot>
+        </table>
+        <div class="total-box">
+          <div>
+            <div style="font-size:11px;opacity:.7;">มัดจำ 30% (ชำระแล้ว)</div>
+            <div style="font-size:14px;font-weight:700;">฿${o.depositAmount.toLocaleString()}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;opacity:.7;">ยอดคงเหลือ ณ วันรับสินค้า</div>
+            <div class="amt">฿${(o.totalAmount - o.depositAmount).toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sig">
+        <div class="line">ลายเซ็นผู้ส่งสินค้า / โรงงาน</div>
+        <div class="line">ลายเซ็นผู้รับสินค้า / ลูกค้า</div>
+      </div>
+
+      <div class="ft">เอกสารนี้สร้างโดยระบบ Flowmart · ${new Date().toLocaleString('th-TH')}</div>
+    </div>
+    <script>setTimeout(()=>window.print(),400);<\/script>
+    </body></html>`);
+  w.document.close();
 }
 
 function showToast(msg) {
