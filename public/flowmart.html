@@ -1480,25 +1480,31 @@ function addSupplierOrder(order) {
   saveSupplierOrders(list);
 }
 function seedSupplierOrdersIfEmpty() {
-  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง เพื่อให้ตัวจับเวลาดีลเริ่มต้นใหม่
+  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง — ดีลกลุ่ม: ลูกค้าที่สั่งสินค้าเดียวกันจะปิดดีลพร้อมกัน
   const now = Date.now();
+  // ตัวจับเวลาแยกต่อ "สินค้า" (ดีลกลุ่ม) ไม่ใช่ต่อออเดอร์
+  const dealClose = {
+    oil:   now + 1000 * 60 * 3,   // ดีลน้ำมัน — ปิดพร้อมกันใน 3 นาที
+    milk:  now + 1000 * 60 * 8,   // ดีลนม — ปิดพร้อมกันใน 8 นาที
+    snack: now - 1000 * 60,       // ดีลขนม — หมดเวลาแล้ว (ปิดอัตโนมัติ)
+  };
   const seeds = [
-    { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: now + 1000 * 60 * 3, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
+    { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
       address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
       category: 'ของแห้ง',
       items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
       totalAmount: 2475, depositAmount: 742, status: 'pending' },
-    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: now + 1000 * 60 * 8, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
+    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.milk, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
       address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
       category: 'เครื่องดื่ม',
       items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
       totalAmount: 2760, depositAmount: 828, status: 'pending' },
-    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: now - 1000 * 60, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
+    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.snack, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
       address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
       category: 'ขนม',
       items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
       totalAmount: 1800, depositAmount: 540, status: 'pending' },
-    { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: now + 1000 * 60 * 15, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค',
+    { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: dealClose.oil, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค', contact: '02-415-7788',
       address: { detail: '88 ถ.พระราม 2 ซ.34', subdistrict: 'แสมดำ', district: 'บางขุนเทียน', province: 'กรุงเทพฯ', zip: '10150' },
       category: 'ของแห้ง',
       items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
