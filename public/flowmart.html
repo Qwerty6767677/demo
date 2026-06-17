@@ -1781,8 +1781,9 @@ function supplierOwnsOrder(o, me) {
   if (me.category) return o.category === me.category;
   return false;
 }
-function renderSupplierDashboard() {
+async function renderSupplierDashboard() {
   autoCloseExpiredOrders();
+  await fetchCloudOrders();
   const users = getUsers();
   const me = (currentUser && currentUser.type === 'supplier') ? (users[currentUser.email] || {}) : {};
   const isSupplier = currentUser && currentUser.type === 'supplier';
@@ -1881,9 +1882,17 @@ function renderSupplierDashboard() {
   // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง + ตรวจจับออเดอร์ใหม่แบบเรียลไทม์
   if (supplierTickTimer) clearInterval(supplierTickTimer);
   let lastSnapshot = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+  let lastCloudPoll = Date.now();
   supplierTickTimer = setInterval(() => {
     const pageEl = document.getElementById('page-supplier');
     if (!pageEl || !pageEl.classList.contains('active')) return;
+    if (Date.now() - lastCloudPoll >= 3000) {
+      lastCloudPoll = Date.now();
+      fetchCloudOrders().then(() => {
+        const cloudSnap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+        if (cloudSnap !== lastSnapshot) renderSupplierDashboard();
+      });
+    }
     // มีออเดอร์ใหม่จากลูกค้า (หรือถูกแก้) → re-render ทันที
     const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
     if (snap !== lastSnapshot) {
