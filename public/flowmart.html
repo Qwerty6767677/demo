@@ -2034,12 +2034,13 @@ function handleSignup(e) {
   const record = { name, password: pw, createdAt: Date.now(), type: selectedAccountType };
   if (selectedAccountType === 'supplier') {
     const company = document.getElementById('signup-company').value.trim();
-    const category = document.getElementById('signup-category').value;
+    const productId = document.getElementById('signup-product').value;
     const productDesc = document.getElementById('signup-product-desc').value.trim();
     const contact = document.getElementById('signup-contact').value.trim();
     const supplierAddress = document.getElementById('signup-supplier-address').value.trim();
-    if (!company || !category) return showAuthError('กรุณาระบุชื่อโรงงานและหมวดสินค้า');
-    Object.assign(record, { company, category, productDesc, contact, supplierAddress });
+    if (!company || !productId) return showAuthError('กรุณาระบุชื่อโรงงานและรายการสินค้าที่ขาย');
+    const prod = DATA.find(p => p.id === productId) || {};
+    Object.assign(record, { company, productId, productName: prod.name || '', productUnit: prod.unit || '', category: prod.cat || '', productDesc, contact, supplierAddress });
   }
   users[email] = record;
   saveUsers(users);
