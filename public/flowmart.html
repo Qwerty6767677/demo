@@ -473,6 +473,8 @@
     font-size: 72px;
     position: relative;
   }
+  .prod-img-box img { width: 100%; height: 100%; object-fit: contain; padding: 12px; }
+  .receipt-img img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
   .timer-overlay {
     position: absolute;
     bottom: 10px; right: 10px;
@@ -1018,10 +1020,11 @@
 
 <script>
 const DATA = [
-  { id: 'oil', emoji: '🛢️', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', cat: 'ของแห้ง', status: 'hot', statusText: '🔥 ปิดรอบแล้ว', timeText: 'ปิดดีลสำเร็จ', min: 2, pooled: 142, myQty: 0, minutesLeft: 0, tiers: [{ q: 0, p: 580 }, { q: 100, p: 495 }] },
-  { id: 'sugar', emoji: '🧂', name: 'น้ำตาลทรายขาว มิตรผล 1kg', unit: 'กระสอบ (25 ถุง)', cat: 'ของแห้ง', status: 'trending', statusText: '⚡ AI ขยายเวลา', timeText: '23 ชม. 51 นาที', min: 2, pooled: 34, myQty: 0, minutesLeft: 1431, tiers: [{ q: 0, p: 680 }, { q: 60, p: 590 }] },
-  { id: 'milk', emoji: '🥛', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', cat: 'เครื่องดื่ม', status: 'trending', statusText: '✨ แนะนำประจำโซน', timeText: '11 ชม. 14 นาที', min: 1, pooled: 18, myQty: 0, minutesLeft: 674, tiers: [{ q: 0, p: 410 }, { q: 50, p: 345 }] },
-  { id: 'snack', emoji: '🥔', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', cat: 'ขนม', status: 'niche', statusText: '⏱️ วิกฤต! <30 นาที', timeText: 'เหลือ 15 นาที', min: 4, pooled: 11, myQty: 0, minutesLeft: 15, tiers: [{ q: 0, p: 216 }, { q: 40, p: 180 }] }
+  { id: 'oil', emoji: '🛢️', img: '/__l5e/assets-v1/7ab728b3-3fd6-4a19-81de-6d05d44dbbdc/oil-morakot.png', name: 'น้ำมันพืชปาล์ม มรกต 1 ลิตร', unit: 'ลัง (12 ขวด)', cat: 'ของแห้ง', status: 'trending', statusText: '🔥 ดีลกำลังมา', timeText: '5 ชม. 30 นาที', min: 2, pooled: 64, myQty: 0, minutesLeft: 330, tiers: [{ q: 0, p: 580 }, { q: 100, p: 495 }] },
+  { id: 'mama', emoji: '🍜', img: '/__l5e/assets-v1/702a5b32-2dda-429f-8225-465d749a65f1/mama-tomyum.png', name: 'มาม่า รสต้มยำกุ้ง 55g', unit: 'ลัง (30 ซอง)', cat: 'ของแห้ง', status: 'trending', statusText: '✨ ขายดีประจำโซน', timeText: '8 ชม. 12 นาที', min: 2, pooled: 41, myQty: 0, minutesLeft: 492, tiers: [{ q: 0, p: 165 }, { q: 60, p: 138 }] },
+  { id: 'coke', emoji: '🥤', img: '/__l5e/assets-v1/19083441-0644-47a4-b58b-61a33740759b/coke-500ml.png', name: 'โค้ก 500 มล.', unit: 'แพ็ค (12 ขวด)', cat: 'เครื่องดื่ม', status: 'trending', statusText: '⚡ AI ขยายเวลา', timeText: '11 ชม. 14 นาที', min: 1, pooled: 28, myQty: 0, minutesLeft: 674, tiers: [{ q: 0, p: 210 }, { q: 50, p: 180 }] },
+  { id: 'water', emoji: '💧', img: '/__l5e/assets-v1/6a80c422-f302-44ea-a1b2-fee165f85337/crystal-water.png', name: 'น้ำดื่มคริสตัล 600 มล.', unit: 'แพ็ค (12 ขวด)', cat: 'เครื่องดื่ม', status: 'niche', statusText: '🆕 ดีลใหม่ในโซน', timeText: '23 ชม. 51 นาที', min: 2, pooled: 19, myQty: 0, minutesLeft: 1431, tiers: [{ q: 0, p: 72 }, { q: 80, p: 60 }] },
+  { id: 'lays', emoji: '🥔', img: '/__l5e/assets-v1/5e654ce3-7ede-43b3-93f3-7f316235d486/lays-classic.png', name: 'เลย์ รสคลาสสิก 25g', unit: 'ลัง (30 ห่อ)', cat: 'ขนม', status: 'trending', statusText: '⏱️ วิกฤต! <30 นาที', timeText: 'เหลือ 22 นาที', min: 2, pooled: 14, myQty: 0, minutesLeft: 22, tiers: [{ q: 0, p: 240 }, { q: 40, p: 210 }] }
 ];
 
 let currentCategoryFilter = 'ทั้งหมด';
@@ -1180,11 +1183,11 @@ const DASH = {
   ],
   hourly: [3,2,1,1,1,2,5,8,12,18,22,28,32,30,26,22,24,28,32,28,20,14,9,5],
   top: [
-    { emoji: '🛢️', nm: 'น้ำมันพืชปาล์ม มรกต 1L', sub: '142 ลัง · 24 กลุ่ม', amt: '฿70,290' },
-    { emoji: '🥛', nm: 'นมยูเอชที โฟร์โมสต์', sub: '98 ลัง · 18 กลุ่ม', amt: '฿33,810' },
-    { emoji: '🧂', nm: 'น้ำตาลทรายขาว มิตรผล', sub: '76 กระสอบ · 14 กลุ่ม', amt: '฿44,840' },
-    { emoji: '🥔', nm: 'เลย์ มันฝรั่งทอด 42g', sub: '54 แพ็ค · 11 กลุ่ม', amt: '฿9,720' },
-    { emoji: '🍜', nm: 'มาม่า รสต้มยำกุ้ง', sub: '48 ลัง · 9 กลุ่ม', amt: '฿8,640' }
+    { emoji: '🛢️', nm: 'น้ำมันพืชปาล์ม มรกต 1 ลิตร', sub: '142 ลัง · 24 กลุ่ม', amt: '฿70,290' },
+    { emoji: '🍜', nm: 'มาม่า รสต้มยำกุ้ง', sub: '98 ลัง · 18 กลุ่ม', amt: '฿13,524' },
+    { emoji: '🥤', nm: 'โค้ก 500 มล.', sub: '76 แพ็ค · 14 กลุ่ม', amt: '฿13,680' },
+    { emoji: '💧', nm: 'น้ำดื่มคริสตัล 600 มล.', sub: '54 แพ็ค · 11 กลุ่ม', amt: '฿3,240' },
+    { emoji: '🥔', nm: 'เลย์ รสคลาสสิก 25g', sub: '48 ลัง · 9 กลุ่ม', amt: '฿10,080' }
   ],
   activity: [
     { c: '#00b14f', t: 'ดีลน้ำมันพืช มรกต ปิดสำเร็จ (142/100 ลัง)', ts: '2 นาทีที่แล้ว · จ.ปทุมธานี' },
@@ -1362,7 +1365,7 @@ function renderMarket() {
     container.innerHTML += `
       <div class="product-card">
         <div class="badge-ribbon ${item.status}">${item.statusText}</div>
-        <div class="prod-img-box">${item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
+        <div class="prod-img-box">${item.img ? `<img src="${item.img}" alt="${escapeHtml(item.name)}" loading="lazy">` : item.emoji}<div class="timer-overlay">⏳ <span data-product-closesat="${getProductClosesAt(item.id)}">${getProductTimeLabel(item)}</span></div></div>
         <div class="prod-details">
           <div>
             <div class="prod-name">${item.name}</div>
@@ -1436,7 +1439,7 @@ function renderReceipt() {
       html += `
         <div class="receipt-item">
           <div class="receipt-left">
-            <div class="receipt-img">${item.emoji}</div>
+            <div class="receipt-img">${item.img ? `<img src="${item.img}" alt="${escapeHtml(item.name)}">` : item.emoji}</div>
             <div>
               <div style="font-weight:700;">${item.name}</div>
               <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">จำนวน: ${item.myQty} ลัง · มัดจำกลุ่ม 30%</div>
@@ -1717,30 +1720,30 @@ function seedSupplierOrdersIfEmpty() {
   const now = Date.now();
   const dealClose = {
     oil:   now + 1000 * 60 * 3,
-    milk:  now + 1000 * 60 * 8,
-    snack: now - 1000 * 60,
+    coke:  now + 1000 * 60 * 8,
+    lays:  now - 1000 * 60,
   };
   const seeds = [
     { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
       address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
       category: 'ของแห้ง',
-      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
+      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1 ลิตร', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
       totalAmount: 2475, depositAmount: 742, status: 'pending' },
-    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.milk, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
+    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.coke, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
       address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
       category: 'เครื่องดื่ม',
-      items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
-      totalAmount: 2760, depositAmount: 828, status: 'pending' },
-    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.snack, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
+      items: [{ id: 'coke', name: 'โค้ก 500 มล.', unit: 'แพ็ค (12 ขวด)', qty: 8, price: 180, total: 1440 }],
+      totalAmount: 1440, depositAmount: 432, status: 'pending' },
+    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.lays, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
       address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
       category: 'ขนม',
-      items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
-      totalAmount: 1800, depositAmount: 540, status: 'pending' },
+      items: [{ id: 'lays', name: 'เลย์ รสคลาสสิก 25g', unit: 'ลัง (30 ห่อ)', qty: 6, price: 210, total: 1260 }],
+      totalAmount: 1260, depositAmount: 378, status: 'pending' },
     { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: dealClose.oil, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค', contact: '02-415-7788',
       address: { detail: '88 ถ.พระราม 2 ซ.34', subdistrict: 'แสมดำ', district: 'บางขุนเทียน', province: 'กรุงเทพฯ', zip: '10150' },
       category: 'ของแห้ง',
-      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
-      totalAmount: 1485, depositAmount: 445, status: 'pending' },
+      items: [{ id: 'mama', name: 'มาม่า รสต้มยำกุ้ง 55g', unit: 'ลัง (30 ซอง)', qty: 4, price: 138, total: 552 }],
+      totalAmount: 552, depositAmount: 166, status: 'pending' },
   ];
   saveSupplierOrders(seeds);
 }
