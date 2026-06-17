@@ -2516,90 +2516,146 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <div class="auth-overlay" id="auth-overlay">
-  <div class="auth-card">
-    <div class="auth-brand">🛒 Flow<span>mart</span></div>
-    <div class="auth-sub">ดีลกลุ่มสินค้าราคาส่งจากโรงงาน</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-mode="login" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
-      <button class="auth-tab" data-mode="signup" onclick="switchAuthTab('signup')">สมัครสมาชิก</button>
+  <div class="auth-shell">
+
+    <aside class="auth-hero">
+      <div class="glow"></div>
+      <span class="badge">✨ ดีลกลุ่ม ราคาส่งโรงงาน</span>
+      <h1>รวมพลังสั่งซื้อ <em>ราคาถูกกว่า</em><br/>ทุกชิ้นที่คุณช้อป</h1>
+      <p>เข้าร่วม Flowmart เพื่อรับราคาส่งจากโรงงาน เมื่อมีคนสั่งเยอะพอ ดีลปิดเอง — ส่งถึงหน้าบ้าน</p>
+      <ul class="auth-feats">
+        <li><span class="dot">🏭</span><span>สินค้าตรงจากโรงงาน ตัดพ่อค้าคนกลาง</span></li>
+        <li><span class="dot">📦</span><span>ยิ่งคนสั่งเยอะ ยิ่งถูกลงแบบขั้นบันได</span></li>
+        <li><span class="dot">⚡</span><span>ปิดดีลอัตโนมัติเมื่อครบจำนวน ไม่ต้องรอ</span></li>
+      </ul>
+    </aside>
+
+    <div class="auth-card">
+      <div class="auth-brand">🛒 Flow<span>mart</span></div>
+      <div class="auth-sub">ยินดีต้อนรับ — เริ่มต้นใช้งานได้ในไม่กี่วินาที</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
+        <button class="auth-tab" data-mode="signup" onclick="switchAuthTab('signup')">สมัครสมาชิก</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+
+      <form id="auth-form-login" onsubmit="return handleLogin(event)">
+        <div class="auth-field">
+          <label>อีเมล</label>
+          <div class="auth-input-wrap">
+            <span class="ic">✉️</span>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>รหัสผ่าน</label>
+          <div class="auth-input-wrap">
+            <span class="ic">🔒</span>
+            <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" required>
+            <button type="button" class="toggle-pw" onclick="togglePw('login-password', this)" aria-label="แสดงรหัสผ่าน">👁</button>
+          </div>
+        </div>
+        <div class="auth-remember">
+          <label>
+            <input type="checkbox" id="login-remember">
+            จดจำอีเมลนี้ไว้
+          </label>
+          <a href="#" class="link" onclick="event.preventDefault()">ลืมรหัสผ่าน?</a>
+        </div>
+        <button type="submit" class="auth-submit">เข้าสู่ระบบ →</button>
+        <div class="auth-divider">หรือ</div>
+        <div class="auth-foot">ยังไม่มีบัญชี? <strong style="cursor:pointer" onclick="switchAuthTab('signup')">สมัครฟรี</strong></div>
+      </form>
+
+      <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
+        <div class="type-chooser">
+          <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
+            <div class="ic">🛍️</div>
+            <div class="tt">ลูกค้า / ร้านค้า</div>
+            <div class="ds">ซื้อสินค้ากลุ่ม</div>
+          </div>
+          <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
+            <div class="ic">🏭</div>
+            <div class="tt">โรงงาน / ซัพพลายเออร์</div>
+            <div class="ds">รับคำสั่งซื้อ</div>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
+          <div class="auth-input-wrap">
+            <span class="ic">👤</span>
+            <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
+          </div>
+        </div>
+
+        <div id="signup-supplier-extra" style="display:none;">
+          <div class="auth-field">
+            <label>ชื่อโรงงาน / บริษัท</label>
+            <div class="auth-input-wrap">
+              <span class="ic">🏢</span>
+              <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>รายการสินค้าที่ขาย</label>
+            <select id="signup-product">
+              <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
+            </select>
+            <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
+          </div>
+          <div class="auth-field">
+            <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
+            <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
+          </div>
+          <div class="auth-field">
+            <label>เบอร์โทรติดต่อ</label>
+            <div class="auth-input-wrap">
+              <span class="ic">📞</span>
+              <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>ที่อยู่โรงงาน</label>
+            <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>อีเมล</label>
+          <div class="auth-input-wrap">
+            <span class="ic">✉️</span>
+            <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
+          <div class="auth-input-wrap">
+            <span class="ic">🔒</span>
+            <input type="password" id="signup-password" placeholder="••••••" autocomplete="new-password" required>
+            <button type="button" class="toggle-pw" onclick="togglePw('signup-password', this)" aria-label="แสดงรหัสผ่าน">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="auth-submit">สมัครสมาชิก →</button>
+        <div class="auth-foot">มีบัญชีอยู่แล้ว? <strong style="cursor:pointer" onclick="switchAuthTab('login')">เข้าสู่ระบบ</strong></div>
+      </form>
+
+      <div class="auth-foot" style="margin-top:18px;">🔐 ข้อมูลบัญชีถูกเก็บไว้ในเครื่องของคุณเท่านั้น</div>
     </div>
-    <div class="auth-error" id="auth-error"></div>
 
-    <form id="auth-form-login" onsubmit="return handleLogin(event)">
-      <div class="auth-field">
-        <label>อีเมล</label>
-        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
-      </div>
-      <div class="auth-field">
-        <label>รหัสผ่าน</label>
-        <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" required>
-      </div>
-      <label class="auth-remember">
-        <input type="checkbox" id="login-remember">
-        จดจำอีเมลนี้ไว้
-      </label>
-      <button type="submit" class="auth-submit">เข้าสู่ระบบ</button>
-    </form>
-
-    <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
-      <div class="type-chooser">
-        <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
-          <div class="ic">🛍️</div>
-          <div class="tt">ลูกค้า / ร้านค้า</div>
-          <div class="ds">ซื้อสินค้ากลุ่ม</div>
-        </div>
-        <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
-          <div class="ic">🏭</div>
-          <div class="tt">โรงงาน / ซัพพลายเออร์</div>
-          <div class="ds">รับคำสั่งซื้อ</div>
-        </div>
-      </div>
-
-      <div class="auth-field">
-        <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
-        <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
-      </div>
-
-      <div id="signup-supplier-extra" style="display:none;">
-        <div class="auth-field">
-          <label>ชื่อโรงงาน / บริษัท</label>
-          <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
-        </div>
-        <div class="auth-field">
-          <label>รายการสินค้าที่ขาย</label>
-          <select id="signup-product">
-            <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
-          </select>
-          <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
-        </div>
-        <div class="auth-field">
-          <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
-          <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
-        </div>
-        <div class="auth-field">
-          <label>เบอร์โทรติดต่อ</label>
-          <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
-        </div>
-        <div class="auth-field">
-          <label>ที่อยู่โรงงาน</label>
-          <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
-        </div>
-      </div>
-
-      <div class="auth-field">
-        <label>อีเมล</label>
-        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
-      </div>
-      <div class="auth-field">
-        <label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
-        <input type="password" id="signup-password" placeholder="••••••" autocomplete="new-password" required>
-      </div>
-      <button type="submit" class="auth-submit">สมัครสมาชิก</button>
-    </form>
-
-    <div class="auth-foot">ข้อมูลบัญชีถูกเก็บไว้ในเครื่องของคุณเท่านั้น</div>
   </div>
 </div>
+
+<script>
+  function togglePw(id, btn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isPw = el.type === 'password';
+    el.type = isPw ? 'text' : 'password';
+    btn.textContent = isPw ? '🙈' : '👁';
+  }
+</script>
+
 
 </body>
 </html>
