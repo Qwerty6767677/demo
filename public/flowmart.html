@@ -917,8 +917,6 @@
       <div class="sub" id="sup-company-meta">หมวดสินค้า: —</div>
       <div class="sup-stats">
         <div class="sc"><div class="v" id="sup-stat-total">0</div><div class="l">คำสั่งซื้อทั้งหมด</div></div>
-        <div class="sc"><div class="v" id="sup-stat-pending">0</div><div class="l">รอปิดดีล</div></div>
-        <div class="sc"><div class="v" id="sup-stat-closed">0</div><div class="l">ปิดดีลแล้ว</div></div>
         <div class="sc"><div class="v" id="sup-stat-cases">0</div><div class="l">จำนวนลังรวม</div></div>
         <div class="sc"><div class="v" id="sup-stat-revenue">฿0</div><div class="l">ยอดขายรวม</div></div>
       </div>
@@ -1485,17 +1483,23 @@ function saveSupplierOrders(list) {
 }
 function addSupplierOrder(order) {
   const list = getSupplierOrders();
+  // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
+  if (!order.closesAt) {
+    const itemId = order.items[0] && order.items[0].id;
+    const existing = list.find(o => o.status === 'pending' && o.items[0] && o.items[0].id === itemId && o.closesAt && o.closesAt > Date.now());
+    order.closesAt = existing ? existing.closesAt : Date.now() + 1000 * 60 * 5; // ดีลใหม่: 5 นาที (เดโม)
+  }
   list.unshift(order);
   saveSupplierOrders(list);
 }
 function seedSupplierOrdersIfEmpty() {
-  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง — ดีลกลุ่ม: ลูกค้าที่สั่งสินค้าเดียวกันจะปิดดีลพร้อมกัน
+  // ✅ Seed ตัวอย่าง "เฉพาะ" ตอน localStorage ว่าง — ห้ามทับออเดอร์จริงของลูกค้า
+  if (getSupplierOrders().length > 0) return;
   const now = Date.now();
-  // ตัวจับเวลาแยกต่อ "สินค้า" (ดีลกลุ่ม) ไม่ใช่ต่อออเดอร์
   const dealClose = {
-    oil:   now + 1000 * 60 * 3,   // ดีลน้ำมัน — ปิดพร้อมกันใน 3 นาที
-    milk:  now + 1000 * 60 * 8,   // ดีลนม — ปิดพร้อมกันใน 8 นาที
-    snack: now - 1000 * 60,       // ดีลขนม — หมดเวลาแล้ว (ปิดอัตโนมัติ)
+    oil:   now + 1000 * 60 * 3,
+    milk:  now + 1000 * 60 * 8,
+    snack: now - 1000 * 60,
   };
   const seeds = [
     { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
@@ -1560,8 +1564,8 @@ function renderSupplierDashboard() {
   const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
   const totalCases = mine.reduce((s, o) => s + o.items.reduce((a, i) => a + (i.qty || 0), 0), 0);
   document.getElementById('sup-stat-total').textContent = mine.length;
-  document.getElementById('sup-stat-pending').textContent = pending.length;
-  document.getElementById('sup-stat-closed').textContent = closed.length;
+  const elP = document.getElementById('sup-stat-pending'); if (elP) elP.textContent = pending.length;
+  const elC = document.getElementById('sup-stat-closed'); if (elC) elC.textContent = closed.length;
   const elCases = document.getElementById('sup-stat-cases');
   if (elCases) elCases.textContent = totalCases.toLocaleString();
   document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
@@ -1641,11 +1645,21 @@ function renderSupplierDashboard() {
       </div>`;
   }).join('');
 
-  // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง
+  // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง + ตรวจจับออเดอร์ใหม่แบบเรียลไทม์
   if (supplierTickTimer) clearInterval(supplierTickTimer);
+  let lastSnapshot = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
   supplierTickTimer = setInterval(() => {
     const pageEl = document.getElementById('page-supplier');
     if (!pageEl || !pageEl.classList.contains('active')) return;
+    // มีออเดอร์ใหม่จากลูกค้า (หรือถูกแก้) → re-render ทันที
+    const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+    if (snap !== lastSnapshot) {
+      lastSnapshot = snap;
+      const newCount = getSupplierOrders().filter(o => o.category === me.category).length - mine.length;
+      if (newCount > 0) showToast(`🔔 มีคำสั่งซื้อใหม่ ${newCount} รายการ`);
+      renderSupplierDashboard();
+      return;
+    }
     const expired = autoCloseExpiredOrders();
     if (expired) { renderSupplierDashboard(); return; }
     document.querySelectorAll('[data-closesat]').forEach(el => {
@@ -1653,6 +1667,10 @@ function renderSupplierDashboard() {
       el.textContent = fmtCountdown(t - Date.now());
     });
   }, 1000);
+  // ข้ามแท็บ (storage event ยิงเฉพาะแท็บอื่น)
+  window.addEventListener('storage', (e) => {
+    if (e.key === SUPPLIER_ORDERS_KEY) renderSupplierDashboard();
+  });
 }
 
 function viewCustomerAddress(orderId) {
