@@ -1634,6 +1634,7 @@ function executeCheckout() {
   renderMarket();
   renderReceipt();
   showToast(`🎉 ส่งคำสั่งซื้อ ${createdCount} บิลไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว — ดูประวัติได้ในแท็บ "บิลสรุปจองร่วม"`);
+  try { renderSupplierDashboard(); } catch(e){}
   switchPage('orders');
 }
 
