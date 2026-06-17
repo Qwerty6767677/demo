@@ -1596,26 +1596,30 @@ function executeCheckout() {
   }
   const address = { detail, subdistrict: subdist, district: dist, province: prov, zip };
   const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
-  const byCat = {};
+  const byProduct = {};
   validItems.forEach(it => {
-    (byCat[it.cat] = byCat[it.cat] || []).push(it);
+    (byProduct[it.id] = byProduct[it.id] || []).push(it);
   });
   let createdCount = 0;
-  Object.entries(byCat).forEach(([cat, items]) => {
+  Object.values(byProduct).forEach((items) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
-      // ส่ง minutesLeft ของสินค้าไปด้วย เพื่อให้ closesAt ในบิลตรงกับที่หน้าตลาดแสดง
-      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, minutesLeft: it.minutesLeft };
+      const closesAt = getProductClosesAt(it.id);
+      // ส่ง closesAt จริงของสินค้าไปด้วย เพื่อให้หน้าลูกค้า/โรงงานนับเวลาจากชุดเดียวกัน
+      return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price, closesAt };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
+    const firstItem = items[0];
+    const closesAt = orderItems[0]?.closesAt || Date.now();
     const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
+      closesAt,
       customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
       customerName: shopName,
       contact: (currentUser && currentUser.phone) || '-',
       address,
-      category: cat,
+      category: firstItem.cat,
       items: orderItems,
       totalAmount,
       depositAmount: Math.round(totalAmount * 0.3),
@@ -1651,9 +1655,7 @@ function addSupplierOrder(order) {
     if (existing) {
       order.closesAt = existing.closesAt;
     } else {
-      // ใช้ minutesLeft ของสินค้าเอง เพื่อให้ตรงกับเวลาที่แสดงในหน้าตลาด/ตะกร้า
-      const mins = (typeof first.minutesLeft === 'number' && first.minutesLeft > 0) ? first.minutesLeft : 5;
-      order.closesAt = Date.now() + mins * 60000;
+      order.closesAt = first.closesAt || getProductClosesAt(itemId);
     }
   }
   list.unshift(order);
