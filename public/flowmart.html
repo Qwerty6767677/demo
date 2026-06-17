@@ -2203,17 +2203,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
         </div>
         <div class="auth-field">
-          <label>หมวดสินค้าที่ขาย</label>
-          <select id="signup-category">
-            <option value="ของแห้ง">ของแห้ง / เครื่องปรุง</option>
-            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-            <option value="ขนม">ขนม / ขบเคี้ยว</option>
-            <option value="อื่นๆ">อื่นๆ</option>
+          <label>รายการสินค้าที่ขาย</label>
+          <select id="signup-product">
+            <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
           </select>
+          <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
         </div>
         <div class="auth-field">
-          <label>รายละเอียดสินค้า / ประเภท</label>
-          <textarea id="signup-product-desc" rows="2" placeholder="เช่น น้ำตาลทรายขาว, น้ำตาลทรายแดง, น้ำเชื่อม"></textarea>
+          <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
+          <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
         </div>
         <div class="auth-field">
           <label>เบอร์โทรติดต่อ</label>
