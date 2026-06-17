@@ -1747,6 +1747,14 @@ function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg; el.classList.add('show');
 }
+let selectedAccountType = 'customer';
+function selectAccountType(t) {
+  selectedAccountType = t;
+  document.querySelectorAll('.type-opt').forEach(el => el.classList.toggle('active', el.dataset.type === t));
+  document.getElementById('signup-supplier-extra').style.display = t === 'supplier' ? 'block' : 'none';
+  document.getElementById('signup-name-label').textContent = t === 'supplier' ? 'ชื่อผู้ติดต่อ' : 'ชื่อ / ชื่อร้านค้า';
+}
+
 function handleSignup(e) {
   e.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
@@ -1757,11 +1765,23 @@ function handleSignup(e) {
   if (!/^\S+@\S+\.\S+$/.test(email)) return showAuthError('รูปแบบอีเมลไม่ถูกต้อง');
   const users = getUsers();
   if (users[email]) return showAuthError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
-  users[email] = { name, password: pw, createdAt: Date.now() };
+  const record = { name, password: pw, createdAt: Date.now(), type: selectedAccountType };
+  if (selectedAccountType === 'supplier') {
+    const company = document.getElementById('signup-company').value.trim();
+    const category = document.getElementById('signup-category').value;
+    const productDesc = document.getElementById('signup-product-desc').value.trim();
+    const contact = document.getElementById('signup-contact').value.trim();
+    const supplierAddress = document.getElementById('signup-supplier-address').value.trim();
+    if (!company || !category) return showAuthError('กรุณาระบุชื่อโรงงานและหมวดสินค้า');
+    Object.assign(record, { company, category, productDesc, contact, supplierAddress });
+  }
+  users[email] = record;
   saveUsers(users);
   localStorage.setItem(AUTH_REMEMBER_KEY, email);
-  loginAs(email, name, true);
-  showToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
+  loginAs(email, name, true, record.type);
+  showToast(record.type === 'supplier'
+    ? `🏭 ลงทะเบียนโรงงานสำเร็จ ยินดีต้อนรับ ${record.company}`
+    : `🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
   return false;
 }
 function handleLogin(e) {
@@ -1774,13 +1794,14 @@ function handleLogin(e) {
   if (users[email].password !== pw) return showAuthError('รหัสผ่านไม่ถูกต้อง');
   if (remember) localStorage.setItem(AUTH_REMEMBER_KEY, email);
   else localStorage.removeItem(AUTH_REMEMBER_KEY);
-  loginAs(email, users[email].name, remember);
+  loginAs(email, users[email].name, remember, users[email].type || 'customer');
   showToast(`👋 ยินดีต้อนรับกลับคุณ ${users[email].name}`);
   return false;
 }
-function loginAs(email, name, persist) {
-  currentUser = { email, name };
-  const payload = JSON.stringify({ email, name, ts: Date.now() });
+function loginAs(email, name, persist, type) {
+  type = type || 'customer';
+  currentUser = { email, name, type };
+  const payload = JSON.stringify({ email, name, type, ts: Date.now() });
   if (persist) {
     localStorage.setItem(AUTH_SESSION_KEY, payload);
     setAuthCookie(payload);
@@ -1792,6 +1813,8 @@ function loginAs(email, name, persist) {
   }
   document.getElementById('auth-overlay').classList.remove('open');
   applyUserToUI();
+  if (type === 'supplier') switchPage('supplier');
+  else switchPage('market');
 }
 function handleLogout() {
   localStorage.removeItem(AUTH_SESSION_KEY);
@@ -1799,33 +1822,38 @@ function handleLogout() {
   clearAuthCookie();
   localStorage.removeItem(AUTH_REMEMBER_KEY);
   currentUser = null;
+  document.body.classList.remove('role-supplier', 'role-customer');
   document.getElementById('account-modal-layer').classList.remove('open');
   const emailInput = document.getElementById('login-email');
   const rememberInput = document.getElementById('login-remember');
   if (emailInput) emailInput.value = '';
   if (rememberInput) rememberInput.checked = false;
+  const chip = document.getElementById('user-chip');
+  if (chip) chip.remove();
+  switchAuthTab('login');
   document.getElementById('auth-overlay').classList.add('open');
 }
 function applyUserToUI() {
   if (!currentUser) return;
+  const type = currentUser.type || 'customer';
+  document.body.classList.toggle('role-supplier', type === 'supplier');
+  document.body.classList.toggle('role-customer', type !== 'supplier');
   const u = document.getElementById('input-username');
   if (u && (!u.value || u.dataset.bound !== '1')) { u.value = currentUser.name; u.dataset.bound = '1'; }
   let chip = document.getElementById('user-chip');
   if (!chip) {
     chip = document.createElement('span');
     chip.id = 'user-chip';
-    chip.className = 'user-chip';
     const btn = document.querySelector('.account-trigger-btn');
     btn.parentNode.insertBefore(chip, btn);
   }
-  chip.textContent = '👤 ' + currentUser.name;
+  chip.className = 'user-chip' + (type === 'supplier' ? ' supplier' : '');
+  chip.textContent = (type === 'supplier' ? '🏭 ' : '👤 ') + currentUser.name;
 }
 function initAuth() {
-  // ล้าง session คีย์เก่า ๆ ที่ไม่ใช้แล้ว
   localStorage.removeItem('flowmart_session');
   localStorage.removeItem('flowmart_session_v2');
 
-  // ลองอ่าน session ที่จดจำไว้ (localStorage = จดจำข้ามรอบ, sessionStorage = เฉพาะแท็บนี้)
   let saved = null;
   try {
     saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || getAuthCookie() || sessionStorage.getItem(AUTH_SESSION_KEY) || 'null');
@@ -1833,17 +1861,18 @@ function initAuth() {
 
   const users = getUsers();
   if (saved && saved.email && users[saved.email]) {
-    // เข้าระบบอัตโนมัติเลย ไม่ต้องเด้งหน้า login
-    currentUser = { email: saved.email, name: users[saved.email].name };
-    const payload = JSON.stringify({ email: saved.email, name: users[saved.email].name, ts: saved.ts || Date.now() });
+    const u = users[saved.email];
+    const type = u.type || 'customer';
+    currentUser = { email: saved.email, name: u.name, type };
+    const payload = JSON.stringify({ email: saved.email, name: u.name, type, ts: saved.ts || Date.now() });
     localStorage.setItem(AUTH_SESSION_KEY, payload);
     setAuthCookie(payload);
     document.getElementById('auth-overlay').classList.remove('open');
     applyUserToUI();
+    if (type === 'supplier') switchPage('supplier');
     return;
   }
 
-  // ไม่มี session ที่ใช้ได้ → ล้างค่าค้าง แล้วเปิดหน้า login
   localStorage.removeItem(AUTH_SESSION_KEY);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
   clearAuthCookie();
@@ -1859,6 +1888,7 @@ function initAuth() {
 document.addEventListener('DOMContentLoaded', () => {
   detectUserLocation();
   renderMarket();
+  seedSupplierOrdersIfEmpty();
   initAuth();
 });
 
