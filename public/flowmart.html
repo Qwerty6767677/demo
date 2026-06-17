@@ -1480,10 +1480,17 @@ function cancelOrder(id) {
 }
 
 function executeCheckout() {
-  if(clientTrustScore < 40) return;
-  const detail = document.getElementById('input-address-detail').value;
-  if(!detail) {
-    showToast("⚠️ ปฏิเสธการเข้าดีลกลุ่ม! กรุณากดปุ่มโปรไฟล์มุมบนเพื่อระบุที่อยู่จัดส่งก่อนส่งเอกสารร่วมสัญญากลุ่ม");
+  if(clientTrustScore < 40) {
+    showToast("⚠️ บัญชีถูกระงับสิทธิ์ ไม่สามารถยืนยันคำสั่งซื้อได้");
+    return;
+  }
+  const detail = document.getElementById('input-address-detail').value.trim();
+  const subdist = document.getElementById('input-subdistrict').value.trim();
+  const dist = document.getElementById('input-district').value.trim();
+  const prov = document.getElementById('input-province').value.trim();
+  const zip = document.getElementById('input-zipcode').value.trim();
+  if(!detail || !subdist || !dist || !prov || !zip) {
+    showToast("⚠️ กรุณากรอกที่อยู่จัดส่งให้ครบทุกช่อง (บ้านเลขที่ / ตำบล / อำเภอ / จังหวัด / รหัสไปรษณีย์) ก่อนยืนยันคำสั่งซื้อ");
     toggleAccountModal();
     return;
   }
@@ -1492,41 +1499,42 @@ function executeCheckout() {
     showToast("⚠️ ยังไม่มีรายการที่ถึงขั้นต่ำสำหรับยืนยัน");
     return;
   }
-  const address = {
-    detail,
-    subdistrict: document.getElementById('input-subdistrict').value,
-    district: document.getElementById('input-district').value,
-    province: document.getElementById('input-province').value,
-    zip: document.getElementById('input-zipcode').value,
-  };
+  const address = { detail, subdistrict: subdist, district: dist, province: prov, zip };
   const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
   const byCat = {};
   validItems.forEach(it => {
     (byCat[it.cat] = byCat[it.cat] || []).push(it);
   });
+  let createdCount = 0;
   Object.entries(byCat).forEach(([cat, items]) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
       return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
-    addSupplierOrder({
+    const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
       customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
       customerName: shopName,
+      contact: (currentUser && currentUser.phone) || '-',
       address,
       category: cat,
       items: orderItems,
       totalAmount,
       depositAmount: Math.round(totalAmount * 0.3),
       status: 'pending',
-    });
+    };
+    addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม)
+    addCustomerOrder(order);   // บันทึกประวัติของลูกค้า
+    createdCount++;
   });
   validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
   updateCartSummary();
   renderMarket();
-  showToast(`🎉 ส่งคำสั่งซื้อ ${validItems.length} รายการไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว`);
+  renderReceipt();
+  showToast(`🎉 ส่งคำสั่งซื้อ ${createdCount} บิลไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว — ดูประวัติได้ในแท็บ "บิลสรุปจองร่วม"`);
+  switchPage('orders');
 }
 
 /* ============ SUPPLIER ORDERS STORE ============ */
