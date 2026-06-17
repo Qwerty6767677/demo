@@ -1105,6 +1105,7 @@ function switchPage(page) {
   document.getElementById(`sub-tab-${page}`).classList.add('active');
   if (page === 'orders') renderReceipt();
   if (page === 'dashboard') renderDashboard();
+  if (page === 'supplier') renderSupplierDashboard();
 }
 
 /* ============ DASHBOARD ============ */
