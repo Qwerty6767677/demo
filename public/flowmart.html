@@ -1384,32 +1384,88 @@ function updateCartSummary() {
 function renderReceipt() {
   const list = document.getElementById('receipt-list');
   let validItems = DATA.filter(x => x.myQty >= x.min);
-  if (validItems.length === 0) {
+  let html = '';
+
+  // ส่วนที่ 1: ตะกร้าปัจจุบัน (ยังไม่ได้กดยืนยัน)
+  if (validItems.length > 0) {
+    html += `<div style="font-weight:800; font-size:14px; color:#1e293b; margin-bottom:10px;">🛒 ตะกร้ารอยืนยัน</div>`;
+    validItems.forEach(item => {
+      const price = getActiveTier(item).p;
+      const isLocked = item.minutesLeft <= 30;
+      html += `
+        <div class="receipt-item">
+          <div class="receipt-left">
+            <div class="receipt-img">${item.emoji}</div>
+            <div>
+              <div style="font-weight:700;">${item.name}</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">จำนวน: ${item.myQty} ลัง · มัดจำกลุ่ม 30%</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800; color:var(--primary); margin-bottom:6px; font-family:var(--font-mono);">฿${Math.round((item.myQty * price) * 0.3).toLocaleString()}</div>
+            <button class="cancel-btn" ${isLocked ? 'disabled' : ''} onclick="cancelOrder('${item.id}')">ยกเลิกการจอง</button>
+            ${isLocked ? `<span class="lock-text">🔒 ล็อกระบบยกเลิกแล้ว<br>(เหลือเวลาน้อยกว่า 30 นาที)</span>` : ''}
+          </div>
+        </div>`;
+    });
+  }
+
+  // ส่วนที่ 2: ประวัติบิลที่ยืนยันแล้ว (sync จาก supplier orders ด้วย id)
+  const history = getCustomerOrders();
+  const supplierAll = getSupplierOrders();
+  if (history.length > 0) {
+    html += `<div style="font-weight:800; font-size:14px; color:#1e293b; margin:18px 0 10px;">📋 ประวัติคำสั่งซื้อของฉัน (${history.length})</div>`;
+    history.forEach(h => {
+      const live = supplierAll.find(o => o.id === h.id);
+      const status = live ? live.status : h.status;
+      const closesAt = live ? live.closesAt : h.closesAt;
+      const remain = closesAt ? Math.max(0, closesAt - Date.now()) : 0;
+      const mm = Math.floor(remain / 60000), ss = Math.floor((remain % 60000) / 1000);
+      const statusLabel = status === 'closed'
+        ? `<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">✅ ปิดดีลแล้ว</span>`
+        : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล ${mm}:${String(ss).padStart(2,'0')}</span>`;
+      const itemsHtml = h.items.map(i => `<div style="font-size:12px;color:#475569;">• ${i.name} × ${i.qty} ${i.unit} = ฿${i.total.toLocaleString()}</div>`).join('');
+      html += `
+        <div class="receipt-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="font-weight:700;font-size:13px;color:#0f172a;">🧾 ${h.id}</div>
+            ${statusLabel}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">${new Date(h.ts).toLocaleString('th-TH')}</div>
+          ${itemsHtml}
+          <div style="display:flex;justify-content:space-between;border-top:1px dashed #e2e8f0;padding-top:6px;">
+            <span style="font-size:12px;color:#475569;">ยอดรวม</span>
+            <span style="font-weight:800;color:var(--primary);font-family:var(--font-mono);">฿${h.totalAmount.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:12px;color:#475569;">มัดจำ 30%</span>
+            <span style="font-weight:700;color:#1e293b;font-family:var(--font-mono);">฿${h.depositAmount.toLocaleString()}</span>
+          </div>
+        </div>`;
+    });
+  }
+
+  if (!html) {
     list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0;">ยังไม่มีรายการออเดอร์</p>`;
     return;
   }
-  let html = '';
-  validItems.forEach(item => {
-    const price = getActiveTier(item).p;
-    const isLocked = item.minutesLeft <= 30;
-
-    html += `
-      <div class="receipt-item">
-        <div class="receipt-left">
-          <div class="receipt-img">${item.emoji}</div>
-          <div>
-            <div style="font-weight:700;">${item.name}</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">จำนวน: ${item.myQty} ลัง · มัดจำกลุ่ม 30%</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:800; color:var(--primary); margin-bottom:6px; font-family:var(--font-mono);">฿${Math.round((item.myQty * price) * 0.3).toLocaleString()}</div>
-          <button class="cancel-btn" ${isLocked ? 'disabled' : ''} onclick="cancelOrder('${item.id}')">ยกเลิกการจอง</button>
-          ${isLocked ? `<span class="lock-text">🔒 ล็อกระบบยกเลิกแล้ว<br>(เหลือเวลาน้อยกว่า 30 นาที)</span>` : ''}
-        </div>
-      </div>`;
-  });
   list.innerHTML = html;
+}
+
+/* ============ CUSTOMER ORDER HISTORY ============ */
+const CUSTOMER_ORDERS_KEY = 'flowmart_customer_orders';
+function getCustomerOrders() {
+  try {
+    const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
+    const email = currentUser ? currentUser.email : 'guest@flowmart';
+    return all.filter(o => o.customerEmail === email).sort((a, b) => b.ts - a.ts);
+  } catch { return []; }
+}
+function addCustomerOrder(order) {
+  let all = [];
+  try { all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]'); } catch {}
+  all.unshift(order);
+  localStorage.setItem(CUSTOMER_ORDERS_KEY, JSON.stringify(all));
 }
 
 function cancelOrder(id) {
@@ -1424,10 +1480,17 @@ function cancelOrder(id) {
 }
 
 function executeCheckout() {
-  if(clientTrustScore < 40) return;
-  const detail = document.getElementById('input-address-detail').value;
-  if(!detail) {
-    showToast("⚠️ ปฏิเสธการเข้าดีลกลุ่ม! กรุณากดปุ่มโปรไฟล์มุมบนเพื่อระบุที่อยู่จัดส่งก่อนส่งเอกสารร่วมสัญญากลุ่ม");
+  if(clientTrustScore < 40) {
+    showToast("⚠️ บัญชีถูกระงับสิทธิ์ ไม่สามารถยืนยันคำสั่งซื้อได้");
+    return;
+  }
+  const detail = document.getElementById('input-address-detail').value.trim();
+  const subdist = document.getElementById('input-subdistrict').value.trim();
+  const dist = document.getElementById('input-district').value.trim();
+  const prov = document.getElementById('input-province').value.trim();
+  const zip = document.getElementById('input-zipcode').value.trim();
+  if(!detail || !subdist || !dist || !prov || !zip) {
+    showToast("⚠️ กรุณากรอกที่อยู่จัดส่งให้ครบทุกช่อง (บ้านเลขที่ / ตำบล / อำเภอ / จังหวัด / รหัสไปรษณีย์) ก่อนยืนยันคำสั่งซื้อ");
     toggleAccountModal();
     return;
   }
@@ -1436,41 +1499,42 @@ function executeCheckout() {
     showToast("⚠️ ยังไม่มีรายการที่ถึงขั้นต่ำสำหรับยืนยัน");
     return;
   }
-  const address = {
-    detail,
-    subdistrict: document.getElementById('input-subdistrict').value,
-    district: document.getElementById('input-district').value,
-    province: document.getElementById('input-province').value,
-    zip: document.getElementById('input-zipcode').value,
-  };
+  const address = { detail, subdistrict: subdist, district: dist, province: prov, zip };
   const shopName = document.getElementById('input-username').value || (currentUser && currentUser.name) || 'ลูกค้า';
   const byCat = {};
   validItems.forEach(it => {
     (byCat[it.cat] = byCat[it.cat] || []).push(it);
   });
+  let createdCount = 0;
   Object.entries(byCat).forEach(([cat, items]) => {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
       return { id: it.id, name: it.name, unit: it.unit, qty: it.myQty, price, total: it.myQty * price };
     });
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
-    addSupplierOrder({
+    const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
       customerEmail: currentUser ? currentUser.email : 'guest@flowmart',
       customerName: shopName,
+      contact: (currentUser && currentUser.phone) || '-',
       address,
       category: cat,
       items: orderItems,
       totalAmount,
       depositAmount: Math.round(totalAmount * 0.3),
       status: 'pending',
-    });
+    };
+    addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม)
+    addCustomerOrder(order);   // บันทึกประวัติของลูกค้า
+    createdCount++;
   });
   validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
   updateCartSummary();
   renderMarket();
-  showToast(`🎉 ส่งคำสั่งซื้อ ${validItems.length} รายการไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว`);
+  renderReceipt();
+  showToast(`🎉 ส่งคำสั่งซื้อ ${createdCount} บิลไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว — ดูประวัติได้ในแท็บ "บิลสรุปจองร่วม"`);
+  switchPage('orders');
 }
 
 /* ============ SUPPLIER ORDERS STORE ============ */
