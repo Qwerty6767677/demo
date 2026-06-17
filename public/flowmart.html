@@ -1018,10 +1018,11 @@
 
 <script>
 const DATA = [
-  { id: 'oil', emoji: '🛢️', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', cat: 'ของแห้ง', status: 'hot', statusText: '🔥 ปิดรอบแล้ว', timeText: 'ปิดดีลสำเร็จ', min: 2, pooled: 142, myQty: 0, minutesLeft: 0, tiers: [{ q: 0, p: 580 }, { q: 100, p: 495 }] },
-  { id: 'sugar', emoji: '🧂', name: 'น้ำตาลทรายขาว มิตรผล 1kg', unit: 'กระสอบ (25 ถุง)', cat: 'ของแห้ง', status: 'trending', statusText: '⚡ AI ขยายเวลา', timeText: '23 ชม. 51 นาที', min: 2, pooled: 34, myQty: 0, minutesLeft: 1431, tiers: [{ q: 0, p: 680 }, { q: 60, p: 590 }] },
-  { id: 'milk', emoji: '🥛', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', cat: 'เครื่องดื่ม', status: 'trending', statusText: '✨ แนะนำประจำโซน', timeText: '11 ชม. 14 นาที', min: 1, pooled: 18, myQty: 0, minutesLeft: 674, tiers: [{ q: 0, p: 410 }, { q: 50, p: 345 }] },
-  { id: 'snack', emoji: '🥔', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', cat: 'ขนม', status: 'niche', statusText: '⏱️ วิกฤต! <30 นาที', timeText: 'เหลือ 15 นาที', min: 4, pooled: 11, myQty: 0, minutesLeft: 15, tiers: [{ q: 0, p: 216 }, { q: 40, p: 180 }] }
+  { id: 'oil', emoji: '🛢️', img: '/__l5e/assets-v1/7ab728b3-3fd6-4a19-81de-6d05d44dbbdc/oil-morakot.png', name: 'น้ำมันพืชปาล์ม มรกต 1 ลิตร', unit: 'ลัง (12 ขวด)', cat: 'ของแห้ง', status: 'trending', statusText: '🔥 ดีลกำลังมา', timeText: '5 ชม. 30 นาที', min: 2, pooled: 64, myQty: 0, minutesLeft: 330, tiers: [{ q: 0, p: 580 }, { q: 100, p: 495 }] },
+  { id: 'mama', emoji: '🍜', img: '/__l5e/assets-v1/702a5b32-2dda-429f-8225-465d749a65f1/mama-tomyum.png', name: 'มาม่า รสต้มยำกุ้ง 55g', unit: 'ลัง (30 ซอง)', cat: 'ของแห้ง', status: 'trending', statusText: '✨ ขายดีประจำโซน', timeText: '8 ชม. 12 นาที', min: 2, pooled: 41, myQty: 0, minutesLeft: 492, tiers: [{ q: 0, p: 165 }, { q: 60, p: 138 }] },
+  { id: 'coke', emoji: '🥤', img: '/__l5e/assets-v1/19083441-0644-47a4-b58b-61a33740759b/coke-500ml.png', name: 'โค้ก 500 มล.', unit: 'แพ็ค (12 ขวด)', cat: 'เครื่องดื่ม', status: 'trending', statusText: '⚡ AI ขยายเวลา', timeText: '11 ชม. 14 นาที', min: 1, pooled: 28, myQty: 0, minutesLeft: 674, tiers: [{ q: 0, p: 210 }, { q: 50, p: 180 }] },
+  { id: 'water', emoji: '💧', img: '/__l5e/assets-v1/6a80c422-f302-44ea-a1b2-fee165f85337/crystal-water.png', name: 'น้ำดื่มคริสตัล 600 มล.', unit: 'แพ็ค (12 ขวด)', cat: 'เครื่องดื่ม', status: 'niche', statusText: '🆕 ดีลใหม่ในโซน', timeText: '23 ชม. 51 นาที', min: 2, pooled: 19, myQty: 0, minutesLeft: 1431, tiers: [{ q: 0, p: 72 }, { q: 80, p: 60 }] },
+  { id: 'lays', emoji: '🥔', img: '/__l5e/assets-v1/5e654ce3-7ede-43b3-93f3-7f316235d486/lays-classic.png', name: 'เลย์ รสคลาสสิก 25g', unit: 'ลัง (30 ห่อ)', cat: 'ขนม', status: 'trending', statusText: '⏱️ วิกฤต! <30 นาที', timeText: 'เหลือ 22 นาที', min: 2, pooled: 14, myQty: 0, minutesLeft: 22, tiers: [{ q: 0, p: 240 }, { q: 40, p: 210 }] }
 ];
 
 let currentCategoryFilter = 'ทั้งหมด';
