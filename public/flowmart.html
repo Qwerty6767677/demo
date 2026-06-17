@@ -2011,6 +2011,14 @@ function selectAccountType(t) {
   document.querySelectorAll('.type-opt').forEach(el => el.classList.toggle('active', el.dataset.type === t));
   document.getElementById('signup-supplier-extra').style.display = t === 'supplier' ? 'block' : 'none';
   document.getElementById('signup-name-label').textContent = t === 'supplier' ? 'ชื่อผู้ติดต่อ' : 'ชื่อ / ชื่อร้านค้า';
+  if (t === 'supplier') populateSupplierProductOptions();
+}
+function populateSupplierProductOptions() {
+  const sel = document.getElementById('signup-product');
+  if (!sel || sel.dataset.filled === '1') return;
+  sel.innerHTML = '<option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>' +
+    DATA.map(p => `<option value="${p.id}">${p.emoji} ${p.name} · ${p.unit}</option>`).join('');
+  sel.dataset.filled = '1';
 }
 
 function handleSignup(e) {
