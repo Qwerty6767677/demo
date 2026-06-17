@@ -1691,12 +1691,13 @@ function showRouteModal(title, bodyHtml) {
     m = document.createElement('div');
     m.id = 'route-modal';
     m.className = 'modal-overlay';
-    m.innerHTML = `<div class="account-modal" style="max-width:560px;"><div class="modal-header"><h3 id="route-modal-title"></h3><button class="modal-close-btn" onclick="document.getElementById('route-modal').classList.remove('show')">×</button></div><div class="modal-body" id="route-modal-body"></div></div>`;
+    m.innerHTML = `<div class="account-modal" style="max-width:560px;"><div class="modal-header"><h3 id="route-modal-title"></h3><button class="modal-close-btn" onclick="document.getElementById('route-modal').classList.remove('open')">×</button></div><div class="modal-body" id="route-modal-body"></div></div>`;
     document.body.appendChild(m);
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
   }
   document.getElementById('route-modal-title').textContent = title;
   document.getElementById('route-modal-body').innerHTML = bodyHtml;
-  m.classList.add('show');
+  m.classList.add('open');
 }
 
 function printAllClosedPDF() {
