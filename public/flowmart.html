@@ -1431,7 +1431,8 @@ function handleSignup(e) {
   if (users[email]) return showAuthError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
   users[email] = { name, password: pw, createdAt: Date.now() };
   saveUsers(users);
-  loginAs(email, name);
+  localStorage.setItem(AUTH_REMEMBER_KEY, email);
+  loginAs(email, name, true);
   showToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับคุณ ${name}`);
   return false;
 }
@@ -1445,20 +1446,33 @@ function handleLogin(e) {
   if (users[email].password !== pw) return showAuthError('รหัสผ่านไม่ถูกต้อง');
   if (remember) localStorage.setItem(AUTH_REMEMBER_KEY, email);
   else localStorage.removeItem(AUTH_REMEMBER_KEY);
-  loginAs(email, users[email].name);
+  loginAs(email, users[email].name, remember);
   showToast(`👋 ยินดีต้อนรับกลับคุณ ${users[email].name}`);
   return false;
 }
-function loginAs(email, name) {
+function loginAs(email, name, persist) {
   currentUser = { email, name };
+  const payload = JSON.stringify({ email, name, ts: Date.now() });
+  if (persist) {
+    localStorage.setItem(AUTH_SESSION_KEY, payload);
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  } else {
+    sessionStorage.setItem(AUTH_SESSION_KEY, payload);
+    localStorage.removeItem(AUTH_SESSION_KEY);
+  }
   document.getElementById('auth-overlay').classList.remove('open');
   applyUserToUI();
 }
 function handleLogout() {
   localStorage.removeItem(AUTH_SESSION_KEY);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
+  localStorage.removeItem(AUTH_REMEMBER_KEY);
   currentUser = null;
   document.getElementById('account-modal-layer').classList.remove('open');
+  const emailInput = document.getElementById('login-email');
+  const rememberInput = document.getElementById('login-remember');
+  if (emailInput) emailInput.value = '';
+  if (rememberInput) rememberInput.checked = false;
   document.getElementById('auth-overlay').classList.add('open');
 }
 function applyUserToUI() {
@@ -1476,10 +1490,29 @@ function applyUserToUI() {
   chip.textContent = '👤 ' + currentUser.name;
 }
 function initAuth() {
+  // ล้าง session คีย์เก่า ๆ ที่ไม่ใช้แล้ว
   localStorage.removeItem('flowmart_session');
   localStorage.removeItem('flowmart_session_v2');
+
+  // ลองอ่าน session ที่จดจำไว้ (localStorage = จดจำข้ามรอบ, sessionStorage = เฉพาะแท็บนี้)
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || sessionStorage.getItem(AUTH_SESSION_KEY) || 'null');
+  } catch { saved = null; }
+
+  const users = getUsers();
+  if (saved && saved.email && users[saved.email]) {
+    // เข้าระบบอัตโนมัติเลย ไม่ต้องเด้งหน้า login
+    currentUser = { email: saved.email, name: users[saved.email].name };
+    document.getElementById('auth-overlay').classList.remove('open');
+    applyUserToUI();
+    return;
+  }
+
+  // ไม่มี session ที่ใช้ได้ → ล้างค่าค้าง แล้วเปิดหน้า login
   localStorage.removeItem(AUTH_SESSION_KEY);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
+
   const rememberedEmail = localStorage.getItem(AUTH_REMEMBER_KEY) || '';
   const emailInput = document.getElementById('login-email');
   const rememberInput = document.getElementById('login-remember');
@@ -1493,6 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderMarket();
   initAuth();
 });
+
 </script>
 
 <div class="auth-overlay" id="auth-overlay">
