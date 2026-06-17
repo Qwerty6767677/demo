@@ -1555,10 +1555,11 @@ function renderSupplierDashboard() {
   const users = getUsers();
   const me = users[currentUser.email] || {};
   document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
-  document.getElementById('sup-company-meta').textContent = `หมวดสินค้า: ${me.category || '—'} · ${me.productDesc || ''}`;
+  const prodLabel = me.productName || me.category || '—';
+  document.getElementById('sup-company-meta').textContent = `สินค้าที่ขาย: ${prodLabel}${me.productDesc ? ' · ' + me.productDesc : ''}`;
 
   const all = getSupplierOrders();
-  const mine = all.filter(o => o.category === me.category);
+  const mine = all.filter(o => supplierOwnsOrder(o, me));
   const pending = mine.filter(o => o.status === 'pending');
   const closed = mine.filter(o => o.status === 'closed');
   const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
@@ -1584,7 +1585,7 @@ function renderSupplierDashboard() {
 
   const list = document.getElementById('supplier-orders-list');
   if (mine.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อสำหรับ "${prodLabel}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้านี้ จะแสดงที่นี่แบบเรียลไทม์</small></div>`;
     return;
   }
 
