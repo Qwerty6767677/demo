@@ -87,10 +87,9 @@ export const Route = createFileRoute("/api/flowmart-orders")({
         const { data, error } = await cloudClient()
           .from("flowmart_orders")
           .upsert(toDbOrder(order), { onConflict: "id" })
-          .select("*")
-          .single();
+          .select("*");
         if (error) return Response.json({ error: error.message }, { status: 500 });
-        return Response.json({ order: toAppOrder(data) });
+        return Response.json({ order: data?.[0] ? toAppOrder(data[0]) : order });
       },
       DELETE: async ({ request }) => {
         const id = new URL(request.url).searchParams.get("id");
