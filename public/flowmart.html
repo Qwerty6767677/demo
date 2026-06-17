@@ -1422,11 +1422,16 @@ function renderReceipt() {
       const status = live ? live.status : h.status;
       const closesAt = live ? live.closesAt : h.closesAt;
       const remain = closesAt ? Math.max(0, closesAt - Date.now()) : 0;
-      const mm = Math.floor(remain / 60000), ss = Math.floor((remain % 60000) / 1000);
+      const canCancel = status === 'pending' && remain > 30 * 60000;
       const statusLabel = status === 'closed'
         ? `<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">✅ ปิดดีลแล้ว</span>`
-        : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล ${mm}:${String(ss).padStart(2,'0')}</span>`;
+        : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล <strong data-closesat="${closesAt}">${fmtCountdown(remain)}</strong></span>`;
       const itemsHtml = h.items.map(i => `<div style="font-size:12px;color:#475569;">• ${i.name} × ${i.qty} ${i.unit} = ฿${i.total.toLocaleString()}</div>`).join('');
+      const cancelBtn = status === 'pending'
+        ? (canCancel
+            ? `<button class="cancel-btn" onclick="cancelHistoryOrder('${h.id}')">ยกเลิกบิลนี้</button>`
+            : `<span class="lock-text">🔒 ใกล้ปิดดีล (เหลือ < 30 นาที) ยกเลิกไม่ได้</span>`)
+        : '';
       html += `
         <div class="receipt-item" style="flex-direction:column;align-items:stretch;gap:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -1439,19 +1444,38 @@ function renderReceipt() {
             <span style="font-size:12px;color:#475569;">ยอดรวม</span>
             <span style="font-weight:800;color:var(--primary);font-family:var(--font-mono);">฿${h.totalAmount.toLocaleString()}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:12px;color:#475569;">มัดจำ 30%</span>
             <span style="font-weight:700;color:#1e293b;font-family:var(--font-mono);">฿${h.depositAmount.toLocaleString()}</span>
           </div>
+          ${cancelBtn ? `<div style="text-align:right;">${cancelBtn}</div>` : ''}
         </div>`;
     });
   }
 
   if (!html) {
     list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0;">ยังไม่มีรายการออเดอร์</p>`;
+    startCustomerReceiptTicker();
     return;
   }
   list.innerHTML = html;
+  startCustomerReceiptTicker();
+}
+
+/* ============ CUSTOMER RECEIPT TICKER (countdown สด + auto-close) ============ */
+let customerTickTimer = null;
+function startCustomerReceiptTicker() {
+  if (customerTickTimer) clearInterval(customerTickTimer);
+  customerTickTimer = setInterval(() => {
+    const pageEl = document.getElementById('page-orders');
+    if (!pageEl || !pageEl.classList.contains('active')) return;
+    const expired = autoCloseExpiredOrders();
+    if (expired) { renderReceipt(); return; }
+    document.querySelectorAll('#receipt-list [data-closesat]').forEach(el => {
+      const t = Number(el.getAttribute('data-closesat'));
+      el.textContent = fmtCountdown(t - Date.now());
+    });
+  }, 1000);
 }
 
 /* ============ CUSTOMER ORDER HISTORY ============ */
