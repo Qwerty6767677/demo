@@ -1549,16 +1549,23 @@ function autoCloseExpiredOrders() {
   if (changed) saveSupplierOrders(list);
   return changed;
 }
+function supplierOwnsOrder(o, me) {
+  if (!o || !me) return false;
+  if (me.productId) return (o.items || []).some(i => i.id === me.productId);
+  if (me.category) return o.category === me.category;
+  return false;
+}
 function renderSupplierDashboard() {
   if (!currentUser || currentUser.type !== 'supplier') return;
   autoCloseExpiredOrders();
   const users = getUsers();
   const me = users[currentUser.email] || {};
   document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
-  document.getElementById('sup-company-meta').textContent = `หมวดสินค้า: ${me.category || '—'} · ${me.productDesc || ''}`;
+  const prodLabel = me.productName || me.category || '—';
+  document.getElementById('sup-company-meta').textContent = `สินค้าที่ขาย: ${prodLabel}${me.productDesc ? ' · ' + me.productDesc : ''}`;
 
   const all = getSupplierOrders();
-  const mine = all.filter(o => o.category === me.category);
+  const mine = all.filter(o => supplierOwnsOrder(o, me));
   const pending = mine.filter(o => o.status === 'pending');
   const closed = mine.filter(o => o.status === 'closed');
   const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
@@ -1584,7 +1591,7 @@ function renderSupplierDashboard() {
 
   const list = document.getElementById('supplier-orders-list');
   if (mine.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อสำหรับ "${prodLabel}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้านี้ จะแสดงที่นี่แบบเรียลไทม์</small></div>`;
     return;
   }
 
@@ -1655,7 +1662,7 @@ function renderSupplierDashboard() {
     const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
     if (snap !== lastSnapshot) {
       lastSnapshot = snap;
-      const newCount = getSupplierOrders().filter(o => o.category === me.category).length - mine.length;
+      const newCount = getSupplierOrders().filter(o => supplierOwnsOrder(o, me)).length - mine.length;
       if (newCount > 0) showToast(`🔔 มีคำสั่งซื้อใหม่ ${newCount} รายการ`);
       renderSupplierDashboard();
       return;
@@ -1692,7 +1699,7 @@ function viewCustomerAddress(orderId) {
 
 async function planDeliveryRoute() {
   const me = getUsers()[currentUser.email] || {};
-  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  const closed = getSupplierOrders().filter(o => supplierOwnsOrder(o, me) && o.status === "closed");
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
   const origin = me.supplierAddress || 'โรงงาน (กรุณาระบุที่อยู่โรงงานในโปรไฟล์)';
   const stopList = closed.map((o, i) => `${i + 1}. ${o.customerName} — ${o.address.detail} ต.${o.address.subdistrict} อ.${o.address.district} จ.${o.address.province} ${o.address.zip}`).join('\n');
@@ -1729,7 +1736,7 @@ function showRouteModal(title, bodyHtml) {
 
 function printAllClosedPDF() {
   const me = getUsers()[currentUser.email] || {};
-  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  const closed = getSupplierOrders().filter(o => supplierOwnsOrder(o, me) && o.status === "closed");
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
   const supplier = me;
   const w = window.open('', '_blank', 'width=900,height=1000');
@@ -2011,6 +2018,14 @@ function selectAccountType(t) {
   document.querySelectorAll('.type-opt').forEach(el => el.classList.toggle('active', el.dataset.type === t));
   document.getElementById('signup-supplier-extra').style.display = t === 'supplier' ? 'block' : 'none';
   document.getElementById('signup-name-label').textContent = t === 'supplier' ? 'ชื่อผู้ติดต่อ' : 'ชื่อ / ชื่อร้านค้า';
+  if (t === 'supplier') populateSupplierProductOptions();
+}
+function populateSupplierProductOptions() {
+  const sel = document.getElementById('signup-product');
+  if (!sel || sel.dataset.filled === '1') return;
+  sel.innerHTML = '<option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>' +
+    DATA.map(p => `<option value="${p.id}">${p.emoji} ${p.name} · ${p.unit}</option>`).join('');
+  sel.dataset.filled = '1';
 }
 
 function handleSignup(e) {
@@ -2026,12 +2041,13 @@ function handleSignup(e) {
   const record = { name, password: pw, createdAt: Date.now(), type: selectedAccountType };
   if (selectedAccountType === 'supplier') {
     const company = document.getElementById('signup-company').value.trim();
-    const category = document.getElementById('signup-category').value;
+    const productId = document.getElementById('signup-product').value;
     const productDesc = document.getElementById('signup-product-desc').value.trim();
     const contact = document.getElementById('signup-contact').value.trim();
     const supplierAddress = document.getElementById('signup-supplier-address').value.trim();
-    if (!company || !category) return showAuthError('กรุณาระบุชื่อโรงงานและหมวดสินค้า');
-    Object.assign(record, { company, category, productDesc, contact, supplierAddress });
+    if (!company || !productId) return showAuthError('กรุณาระบุชื่อโรงงานและรายการสินค้าที่ขาย');
+    const prod = DATA.find(p => p.id === productId) || {};
+    Object.assign(record, { company, productId, productName: prod.name || '', productUnit: prod.unit || '', category: prod.cat || '', productDesc, contact, supplierAddress });
   }
   users[email] = record;
   saveUsers(users);
@@ -2203,17 +2219,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
         </div>
         <div class="auth-field">
-          <label>หมวดสินค้าที่ขาย</label>
-          <select id="signup-category">
-            <option value="ของแห้ง">ของแห้ง / เครื่องปรุง</option>
-            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-            <option value="ขนม">ขนม / ขบเคี้ยว</option>
-            <option value="อื่นๆ">อื่นๆ</option>
+          <label>รายการสินค้าที่ขาย</label>
+          <select id="signup-product">
+            <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
           </select>
+          <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
         </div>
         <div class="auth-field">
-          <label>รายละเอียดสินค้า / ประเภท</label>
-          <textarea id="signup-product-desc" rows="2" placeholder="เช่น น้ำตาลทรายขาว, น้ำตาลทรายแดง, น้ำเชื่อม"></textarea>
+          <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
+          <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
         </div>
         <div class="auth-field">
           <label>เบอร์โทรติดต่อ</label>
