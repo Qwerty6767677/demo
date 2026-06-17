@@ -638,28 +638,120 @@
   @media (min-width: 1200px) {
     .products-grid { grid-template-columns: repeat(4, 1fr); }
   }
-  /* ============ AUTH ============ */
-  .auth-overlay { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(135deg,#0f172a,#1e293b 60%,#0f766e); display: none; align-items: flex-start; justify-content: center; padding: 18px; overflow-y: auto; }
+  /* ============ AUTH (redesigned) ============ */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 9999; display: none;
+    align-items: stretch; justify-content: center; padding: 0;
+    overflow-y: auto;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(20,184,166,.35), transparent 60%),
+      radial-gradient(900px 600px at 110% 110%, rgba(99,102,241,.35), transparent 55%),
+      linear-gradient(135deg,#020617 0%, #0f172a 45%, #134e4a 100%);
+  }
   .auth-overlay.open { display: flex; }
-  .auth-card { width: 100%; max-width: 640px; background: #fff; border-radius: 20px; padding: 32px 36px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); animation: authPop .35s cubic-bezier(.16,1,.3,1); margin: auto 0; }
-  @keyframes authPop { from { transform: translateY(20px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
-  .auth-brand { text-align: center; font-size: 22px; font-weight: 800; color: #0f172a; }
-  .auth-brand span { color: #0f766e; }
-  .auth-sub { text-align: center; font-size: 12px; color: #64748b; margin-top: 4px; margin-bottom: 18px; }
-  .auth-tabs { display: flex; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 16px; }
-  .auth-tab { flex: 1; padding: 9px; border: 0; background: transparent; border-radius: 9px; font-weight: 700; font-size: 13px; color: #64748b; cursor: pointer; }
-  .auth-tab.active { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
-  .auth-field { margin-bottom: 12px; }
-  .auth-field label { display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
-  .auth-field input { width: 100%; padding: 11px 13px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; box-sizing: border-box; }
-  .auth-field input:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,.12); }
-  .auth-submit { width: 100%; padding: 12px; margin-top: 6px; background: linear-gradient(135deg,#0f766e,#14b8a6); color: #fff; border: 0; border-radius: 11px; font-weight: 800; font-size: 14px; cursor: pointer; }
-  .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 10px 25px -10px rgba(15,118,110,.6); }
-  .auth-error { background: #fef2f2; color: #b91c1c; font-size: 12px; padding: 8px 11px; border-radius: 8px; margin-bottom: 10px; display: none; }
-  .auth-error.show { display: block; }
-  .auth-remember { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; color: #475569; font-size: 12px; font-weight: 700; }
+  .auth-overlay::before,
+  .auth-overlay::after {
+    content: ""; position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; z-index: 0;
+  }
+  .auth-overlay::before { width: 380px; height: 380px; background: rgba(20,184,166,.45); top: -120px; left: -120px; animation: floatA 14s ease-in-out infinite; }
+  .auth-overlay::after  { width: 460px; height: 460px; background: rgba(168,85,247,.35); bottom: -160px; right: -160px; animation: floatB 18s ease-in-out infinite; }
+  @keyframes floatA { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px, 30px); } }
+  @keyframes floatB { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-50px, -40px); } }
+
+  .auth-shell {
+    position: relative; z-index: 1; width: 100%; max-width: 980px;
+    margin: auto; padding: 22px;
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+  }
+  @media (min-width: 880px) { .auth-shell { grid-template-columns: 1.05fr 1fr; align-items: center; } }
+
+  .auth-hero {
+    color: #fff; padding: 28px; border-radius: 24px;
+    background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    position: relative; overflow: hidden;
+  }
+  .auth-hero .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800;
+    background: rgba(20,184,166,.18); color: #5eead4; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(94,234,212,.3); letter-spacing: .5px; text-transform: uppercase; }
+  .auth-hero h1 { font-size: 28px; line-height: 1.2; margin: 14px 0 8px; font-weight: 900; letter-spacing: -.5px; }
+  .auth-hero h1 em { font-style: normal; background: linear-gradient(90deg,#5eead4,#a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .auth-hero p { font-size: 14px; color: #cbd5e1; line-height: 1.55; }
+  .auth-feats { margin-top: 18px; display: grid; gap: 10px; }
+  .auth-feats li { list-style: none; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #e2e8f0; }
+  .auth-feats li .dot { flex: 0 0 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: rgba(94,234,212,.15); color: #5eead4; font-size: 14px; }
+  .auth-hero .glow { position: absolute; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(94,234,212,.5), transparent 70%); top: -40px; right: -40px; }
+
+  .auth-card {
+    width: 100%; max-width: 480px; justify-self: center;
+    background: rgba(255,255,255,.97); border-radius: 22px;
+    padding: 28px 28px 22px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.4);
+    animation: authPop .45s cubic-bezier(.16,1,.3,1);
+    border: 1px solid rgba(255,255,255,.6);
+  }
+  @keyframes authPop { from { transform: translateY(24px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .auth-brand { text-align: center; font-size: 24px; font-weight: 900; color: #0f172a; letter-spacing: -.5px; }
+  .auth-brand span { background: linear-gradient(90deg,#0f766e,#14b8a6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .auth-sub { text-align: center; font-size: 12.5px; color: #64748b; margin-top: 4px; margin-bottom: 18px; }
+
+  .auth-tabs { position: relative; display: flex; background: #f1f5f9; border-radius: 14px; padding: 5px; margin-bottom: 18px; }
+  .auth-tab { flex: 1; padding: 10px; border: 0; background: transparent; border-radius: 10px; font-weight: 800; font-size: 13px; color: #64748b; cursor: pointer; transition: color .2s; position: relative; z-index: 1; }
+  .auth-tab.active { color: #0f172a; }
+  .auth-tab.active::before {
+    content: ""; position: absolute; inset: 0; border-radius: 10px;
+    background: #fff; box-shadow: 0 4px 12px -2px rgba(15,23,42,.12), 0 0 0 1px rgba(15,23,42,.04);
+    z-index: -1; animation: tabSlide .25s ease;
+  }
+  @keyframes tabSlide { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .auth-field { margin-bottom: 13px; }
+  .auth-field label { display: block; font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .6px; }
+  .auth-input-wrap { position: relative; }
+  .auth-input-wrap .ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 15px; opacity: .55; pointer-events: none; }
+  .auth-input-wrap .toggle-pw { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; cursor: pointer; padding: 6px 8px; font-size: 14px; color: #64748b; border-radius: 8px; }
+  .auth-input-wrap .toggle-pw:hover { background: #f1f5f9; }
+  .auth-field input,
+  .auth-field select,
+  .auth-field textarea {
+    width: 100%; padding: 12px 14px 12px 38px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+    font-size: 14px; outline: none; box-sizing: border-box; background: #fff;
+    font-family: inherit; transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .auth-field textarea { padding-left: 14px; resize: vertical; }
+  .auth-field select { padding-left: 14px; }
+  .auth-field input:focus,
+  .auth-field select:focus,
+  .auth-field textarea:focus { border-color: #0f766e; box-shadow: 0 0 0 4px rgba(15,118,110,.14); }
+  .auth-field input.no-ic { padding-left: 14px; }
+
+  .auth-submit {
+    width: 100%; padding: 13px; margin-top: 6px;
+    background: linear-gradient(135deg,#0f766e 0%, #14b8a6 55%, #22d3ee 100%);
+    background-size: 200% 100%;
+    color: #fff; border: 0; border-radius: 12px; font-weight: 800; font-size: 14.5px;
+    cursor: pointer; letter-spacing: .3px;
+    box-shadow: 0 10px 24px -10px rgba(15,118,110,.55);
+    transition: transform .15s, box-shadow .2s, background-position .4s;
+  }
+  .auth-submit:hover { transform: translateY(-1px); background-position: 100% 0; box-shadow: 0 16px 32px -12px rgba(20,184,166,.7); }
+  .auth-submit:active { transform: translateY(0); }
+
+  .auth-error { background: #fef2f2; color: #b91c1c; font-size: 12.5px; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; display: none; border: 1px solid #fecaca; }
+  .auth-error.show { display: block; animation: shake .35s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  .auth-remember { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; color: #475569; font-size: 12.5px; font-weight: 700; }
+  .auth-remember label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .auth-remember input { width: 16px; height: 16px; accent-color: #0f766e; }
-  .auth-foot { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 14px; }
+  .auth-remember .link { color: #0f766e; font-weight: 800; text-decoration: none; }
+
+  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 10px; color: #94a3b8; font-size: 11px; font-weight: 700; }
+  .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
+
+  .auth-foot { text-align: center; font-size: 11.5px; color: #94a3b8; margin-top: 16px; }
+  .auth-foot strong { color: #0f766e; }
+
   .btn-logout { width: 100%; padding: 10px; margin-top: 10px; background: #fee2e2; color: #b91c1c; border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .btn-logout:hover { background: #fecaca; }
   .user-chip { font-size: 11px; color: #0f766e; background: #ccfbf1; padding: 4px 9px; border-radius: 99px; margin-right: 6px; font-weight: 700; }
@@ -2424,90 +2516,146 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <div class="auth-overlay" id="auth-overlay">
-  <div class="auth-card">
-    <div class="auth-brand">🛒 Flow<span>mart</span></div>
-    <div class="auth-sub">ดีลกลุ่มสินค้าราคาส่งจากโรงงาน</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-mode="login" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
-      <button class="auth-tab" data-mode="signup" onclick="switchAuthTab('signup')">สมัครสมาชิก</button>
+  <div class="auth-shell">
+
+    <aside class="auth-hero">
+      <div class="glow"></div>
+      <span class="badge">✨ ดีลกลุ่ม ราคาส่งโรงงาน</span>
+      <h1>รวมพลังสั่งซื้อ <em>ราคาถูกกว่า</em><br/>ทุกชิ้นที่คุณช้อป</h1>
+      <p>เข้าร่วม Flowmart เพื่อรับราคาส่งจากโรงงาน เมื่อมีคนสั่งเยอะพอ ดีลปิดเอง — ส่งถึงหน้าบ้าน</p>
+      <ul class="auth-feats">
+        <li><span class="dot">🏭</span><span>สินค้าตรงจากโรงงาน ตัดพ่อค้าคนกลาง</span></li>
+        <li><span class="dot">📦</span><span>ยิ่งคนสั่งเยอะ ยิ่งถูกลงแบบขั้นบันได</span></li>
+        <li><span class="dot">⚡</span><span>ปิดดีลอัตโนมัติเมื่อครบจำนวน ไม่ต้องรอ</span></li>
+      </ul>
+    </aside>
+
+    <div class="auth-card">
+      <div class="auth-brand">🛒 Flow<span>mart</span></div>
+      <div class="auth-sub">ยินดีต้อนรับ — เริ่มต้นใช้งานได้ในไม่กี่วินาที</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login" onclick="switchAuthTab('login')">เข้าสู่ระบบ</button>
+        <button class="auth-tab" data-mode="signup" onclick="switchAuthTab('signup')">สมัครสมาชิก</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+
+      <form id="auth-form-login" onsubmit="return handleLogin(event)">
+        <div class="auth-field">
+          <label>อีเมล</label>
+          <div class="auth-input-wrap">
+            <span class="ic">✉️</span>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>รหัสผ่าน</label>
+          <div class="auth-input-wrap">
+            <span class="ic">🔒</span>
+            <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" required>
+            <button type="button" class="toggle-pw" onclick="togglePw('login-password', this)" aria-label="แสดงรหัสผ่าน">👁</button>
+          </div>
+        </div>
+        <div class="auth-remember">
+          <label>
+            <input type="checkbox" id="login-remember">
+            จดจำอีเมลนี้ไว้
+          </label>
+          <a href="#" class="link" onclick="event.preventDefault()">ลืมรหัสผ่าน?</a>
+        </div>
+        <button type="submit" class="auth-submit">เข้าสู่ระบบ →</button>
+        <div class="auth-divider">หรือ</div>
+        <div class="auth-foot">ยังไม่มีบัญชี? <strong style="cursor:pointer" onclick="switchAuthTab('signup')">สมัครฟรี</strong></div>
+      </form>
+
+      <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
+        <div class="type-chooser">
+          <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
+            <div class="ic">🛍️</div>
+            <div class="tt">ลูกค้า / ร้านค้า</div>
+            <div class="ds">ซื้อสินค้ากลุ่ม</div>
+          </div>
+          <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
+            <div class="ic">🏭</div>
+            <div class="tt">โรงงาน / ซัพพลายเออร์</div>
+            <div class="ds">รับคำสั่งซื้อ</div>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
+          <div class="auth-input-wrap">
+            <span class="ic">👤</span>
+            <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
+          </div>
+        </div>
+
+        <div id="signup-supplier-extra" style="display:none;">
+          <div class="auth-field">
+            <label>ชื่อโรงงาน / บริษัท</label>
+            <div class="auth-input-wrap">
+              <span class="ic">🏢</span>
+              <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>รายการสินค้าที่ขาย</label>
+            <select id="signup-product">
+              <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
+            </select>
+            <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
+          </div>
+          <div class="auth-field">
+            <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
+            <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
+          </div>
+          <div class="auth-field">
+            <label>เบอร์โทรติดต่อ</label>
+            <div class="auth-input-wrap">
+              <span class="ic">📞</span>
+              <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>ที่อยู่โรงงาน</label>
+            <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>อีเมล</label>
+          <div class="auth-input-wrap">
+            <span class="ic">✉️</span>
+            <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
+          <div class="auth-input-wrap">
+            <span class="ic">🔒</span>
+            <input type="password" id="signup-password" placeholder="••••••" autocomplete="new-password" required>
+            <button type="button" class="toggle-pw" onclick="togglePw('signup-password', this)" aria-label="แสดงรหัสผ่าน">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="auth-submit">สมัครสมาชิก →</button>
+        <div class="auth-foot">มีบัญชีอยู่แล้ว? <strong style="cursor:pointer" onclick="switchAuthTab('login')">เข้าสู่ระบบ</strong></div>
+      </form>
+
+      <div class="auth-foot" style="margin-top:18px;">🔐 ข้อมูลบัญชีถูกเก็บไว้ในเครื่องของคุณเท่านั้น</div>
     </div>
-    <div class="auth-error" id="auth-error"></div>
 
-    <form id="auth-form-login" onsubmit="return handleLogin(event)">
-      <div class="auth-field">
-        <label>อีเมล</label>
-        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
-      </div>
-      <div class="auth-field">
-        <label>รหัสผ่าน</label>
-        <input type="password" id="login-password" placeholder="••••••" autocomplete="current-password" required>
-      </div>
-      <label class="auth-remember">
-        <input type="checkbox" id="login-remember">
-        จดจำอีเมลนี้ไว้
-      </label>
-      <button type="submit" class="auth-submit">เข้าสู่ระบบ</button>
-    </form>
-
-    <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
-      <div class="type-chooser">
-        <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
-          <div class="ic">🛍️</div>
-          <div class="tt">ลูกค้า / ร้านค้า</div>
-          <div class="ds">ซื้อสินค้ากลุ่ม</div>
-        </div>
-        <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
-          <div class="ic">🏭</div>
-          <div class="tt">โรงงาน / ซัพพลายเออร์</div>
-          <div class="ds">รับคำสั่งซื้อ</div>
-        </div>
-      </div>
-
-      <div class="auth-field">
-        <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
-        <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
-      </div>
-
-      <div id="signup-supplier-extra" style="display:none;">
-        <div class="auth-field">
-          <label>ชื่อโรงงาน / บริษัท</label>
-          <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
-        </div>
-        <div class="auth-field">
-          <label>รายการสินค้าที่ขาย</label>
-          <select id="signup-product">
-            <option value="" disabled selected>— เลือกสินค้าที่โรงงานของคุณผลิต —</option>
-          </select>
-          <small style="opacity:.7;display:block;margin-top:6px;">เลือก 1 รายการ — แดชบอร์ดจะแสดงเฉพาะออเดอร์ของสินค้านี้</small>
-        </div>
-        <div class="auth-field">
-          <label>หมายเหตุสินค้า (ไม่บังคับ)</label>
-          <textarea id="signup-product-desc" rows="2" placeholder="เช่น สเปก, ขนาด, รสชาติเพิ่มเติม"></textarea>
-        </div>
-        <div class="auth-field">
-          <label>เบอร์โทรติดต่อ</label>
-          <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
-        </div>
-        <div class="auth-field">
-          <label>ที่อยู่โรงงาน</label>
-          <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
-        </div>
-      </div>
-
-      <div class="auth-field">
-        <label>อีเมล</label>
-        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
-      </div>
-      <div class="auth-field">
-        <label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
-        <input type="password" id="signup-password" placeholder="••••••" autocomplete="new-password" required>
-      </div>
-      <button type="submit" class="auth-submit">สมัครสมาชิก</button>
-    </form>
-
-    <div class="auth-foot">ข้อมูลบัญชีถูกเก็บไว้ในเครื่องของคุณเท่านั้น</div>
   </div>
 </div>
+
+<script>
+  function togglePw(id, btn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isPw = el.type === 'password';
+    el.type = isPw ? 'text' : 'password';
+    btn.textContent = isPw ? '🙈' : '👁';
+  }
+</script>
+
 
 </body>
 </html>
