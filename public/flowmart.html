@@ -729,6 +729,15 @@
   .map-link { display: block; text-align: center; padding: 12px; background: linear-gradient(135deg,#22c55e,#15803d); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 700; }
   .route-summary { background: #f1f5f9; border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.7; margin-bottom: 12px; max-height: 50vh; overflow-y: auto; }
   .route-loading { text-align: center; padding: 30px; color: #64748b; }
+  .deal-group { background: #fff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
+  .deal-group.pending { border-color: #fbbf24; background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
+  .deal-group.closed { border-color: #34d399; background: linear-gradient(180deg,#ecfdf5 0%,#fff 60%); }
+  .deal-group-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 12px; border-bottom: 1px dashed #cbd5e1; }
+  .dg-title { font-weight: 800; font-size: 16px; color: #0f172a; }
+  .dg-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dg-pill { background: #f1f5f9; color: #334155; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+  .dg-pill.total { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+  .countdown.closed { background: #d1fae5; color: #047857; }
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
   .empty-state .ic { font-size: 40px; margin-bottom: 8px; }
 </style>
@@ -910,6 +919,7 @@
         <div class="sc"><div class="v" id="sup-stat-total">0</div><div class="l">คำสั่งซื้อทั้งหมด</div></div>
         <div class="sc"><div class="v" id="sup-stat-pending">0</div><div class="l">รอปิดดีล</div></div>
         <div class="sc"><div class="v" id="sup-stat-closed">0</div><div class="l">ปิดดีลแล้ว</div></div>
+        <div class="sc"><div class="v" id="sup-stat-cases">0</div><div class="l">จำนวนลังรวม</div></div>
         <div class="sc"><div class="v" id="sup-stat-revenue">฿0</div><div class="l">ยอดขายรวม</div></div>
       </div>
     </div>
@@ -1479,25 +1489,31 @@ function addSupplierOrder(order) {
   saveSupplierOrders(list);
 }
 function seedSupplierOrdersIfEmpty() {
-  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง เพื่อให้ตัวจับเวลาดีลเริ่มต้นใหม่
+  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง — ดีลกลุ่ม: ลูกค้าที่สั่งสินค้าเดียวกันจะปิดดีลพร้อมกัน
   const now = Date.now();
+  // ตัวจับเวลาแยกต่อ "สินค้า" (ดีลกลุ่ม) ไม่ใช่ต่อออเดอร์
+  const dealClose = {
+    oil:   now + 1000 * 60 * 3,   // ดีลน้ำมัน — ปิดพร้อมกันใน 3 นาที
+    milk:  now + 1000 * 60 * 8,   // ดีลนม — ปิดพร้อมกันใน 8 นาที
+    snack: now - 1000 * 60,       // ดีลขนม — หมดเวลาแล้ว (ปิดอัตโนมัติ)
+  };
   const seeds = [
-    { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: now + 1000 * 60 * 3, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
+    { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
       address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
       category: 'ของแห้ง',
       items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
       totalAmount: 2475, depositAmount: 742, status: 'pending' },
-    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: now + 1000 * 60 * 8, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
+    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.milk, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
       address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
       category: 'เครื่องดื่ม',
       items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
       totalAmount: 2760, depositAmount: 828, status: 'pending' },
-    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: now - 1000 * 60, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
+    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.snack, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
       address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
       category: 'ขนม',
       items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
       totalAmount: 1800, depositAmount: 540, status: 'pending' },
-    { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: now + 1000 * 60 * 15, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค',
+    { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: dealClose.oil, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค', contact: '02-415-7788',
       address: { detail: '88 ถ.พระราม 2 ซ.34', subdistrict: 'แสมดำ', district: 'บางขุนเทียน', province: 'กรุงเทพฯ', zip: '10150' },
       category: 'ของแห้ง',
       items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
@@ -1542,9 +1558,12 @@ function renderSupplierDashboard() {
   const pending = mine.filter(o => o.status === 'pending');
   const closed = mine.filter(o => o.status === 'closed');
   const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
+  const totalCases = mine.reduce((s, o) => s + o.items.reduce((a, i) => a + (i.qty || 0), 0), 0);
   document.getElementById('sup-stat-total').textContent = mine.length;
   document.getElementById('sup-stat-pending').textContent = pending.length;
   document.getElementById('sup-stat-closed').textContent = closed.length;
+  const elCases = document.getElementById('sup-stat-cases');
+  if (elCases) elCases.textContent = totalCases.toLocaleString();
   document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
 
   // ปุ่มเครื่องมือสำหรับโรงงาน (วางแผนเส้นทาง / พิมพ์รวม)
@@ -1564,36 +1583,63 @@ function renderSupplierDashboard() {
     list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
     return;
   }
-  list.innerHTML = mine.map(o => {
-    const remain = o.closesAt ? o.closesAt - Date.now() : 0;
-    const countdown = o.status === 'pending'
-      ? `<div class="countdown ${remain < 60000 ? 'urgent' : ''}">⏱️ ปิดดีลอัตโนมัติใน <strong data-closesat="${o.closesAt}">${fmtCountdown(remain)}</strong></div>`
-      : '';
-    return `
-    <div class="order-card ${o.status}">
-      <div class="order-head">
-        <div>
-          <div class="who">${escapeHtml(o.customerName)}</div>
-          <div class="meta">${o.id} · ${new Date(o.ts).toLocaleString('th-TH')} · ${escapeHtml(o.address.province)}</div>
+
+  // จัดกลุ่มออเดอร์ตาม "สินค้า" (ดีลกลุ่ม) — ลูกค้าที่สั่งสินค้าเดียวกันจะปิดดีลพร้อมกัน
+  const groups = {};
+  mine.forEach(o => {
+    const key = (o.items[0] && o.items[0].id) || 'misc';
+    if (!groups[key]) groups[key] = { itemName: o.items[0]?.name || '—', unit: o.items[0]?.unit || '', closesAt: o.closesAt, status: o.status, orders: [], totalQty: 0, totalAmount: 0 };
+    groups[key].orders.push(o);
+    groups[key].totalQty += o.items.reduce((a, i) => a + (i.qty || 0), 0);
+    groups[key].totalAmount += o.totalAmount;
+    // ดีลปิดเมื่อทุกออเดอร์ในกลุ่มหมดเวลาแล้ว — ใช้เวลาสูงสุดของกลุ่ม
+    if (o.closesAt && o.closesAt > (groups[key].closesAt || 0)) groups[key].closesAt = o.closesAt;
+    if (o.status === 'pending') groups[key].status = 'pending';
+  });
+
+  list.innerHTML = Object.entries(groups).map(([key, g]) => {
+    const remain = g.closesAt ? g.closesAt - Date.now() : 0;
+    const isPending = g.status === 'pending';
+    const groupCountdown = isPending
+      ? `<div class="countdown ${remain < 60000 ? 'urgent' : ''}">⏱️ ดีลกลุ่มจะปิดอัตโนมัติพร้อมกันใน <strong data-closesat="${g.closesAt}">${fmtCountdown(remain)}</strong></div>`
+      : `<div class="countdown closed">✓ ปิดดีลเรียบร้อย — พร้อมจัดส่ง</div>`;
+    const orderCards = g.orders.map(o => `
+      <div class="order-card ${o.status}">
+        <div class="order-head">
+          <div>
+            <div class="who">${escapeHtml(o.customerName)}</div>
+            <div class="meta">${o.id} · ${new Date(o.ts).toLocaleString('th-TH')} · ${escapeHtml(o.address.province)}</div>
+          </div>
+          <span class="order-status ${o.status}">${o.status === 'closed' ? '✓ ปิดดีลแล้ว' : '⏳ รอปิดดีล'}</span>
         </div>
-        <span class="order-status ${o.status}">${o.status === 'closed' ? '✓ ปิดดีลแล้ว' : '⏳ รอปิดดีล'}</span>
-      </div>
-      <div class="order-items">
-        ${o.items.map(i => `<div class="row"><span class="nm">${escapeHtml(i.name)} × ${i.qty} ${escapeHtml(i.unit)}</span><span class="am">฿${i.total.toLocaleString()}</span></div>`).join('')}
-      </div>
-      <div class="order-total">
-        <span class="lbl">ยอดรวม (มัดจำ 30%: ฿${o.depositAmount.toLocaleString()})</span>
-        <span class="amt">฿${o.totalAmount.toLocaleString()}</span>
-      </div>
-      ${countdown}
-      <div class="order-actions">
-        <button class="btn-addr" onclick="viewCustomerAddress('${o.id}')">📍 ดูที่อยู่ลูกค้า</button>
-        ${o.status === 'closed'
-          ? `<button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>`
-          : `<button class="btn-print" disabled title="พิมพ์ได้หลังปิดดีล">🔒 รอปิดดีลก่อนพิมพ์</button>`}
-      </div>
-    </div>
-  `;}).join('');
+        <div class="order-items">
+          ${o.items.map(i => `<div class="row"><span class="nm">${escapeHtml(i.name)} × ${i.qty} ${escapeHtml(i.unit)}</span><span class="am">฿${i.total.toLocaleString()}</span></div>`).join('')}
+        </div>
+        <div class="order-total">
+          <span class="lbl">ยอดรวม (มัดจำ 30%: ฿${o.depositAmount.toLocaleString()})</span>
+          <span class="amt">฿${o.totalAmount.toLocaleString()}</span>
+        </div>
+        <div class="order-actions">
+          <button class="btn-addr" onclick="viewCustomerAddress('${o.id}')">📍 ดูที่อยู่ลูกค้า</button>
+          ${o.status === 'closed'
+            ? `<button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>`
+            : `<button class="btn-print" disabled title="พิมพ์ได้หลังปิดดีล">🔒 รอปิดดีลก่อนพิมพ์</button>`}
+        </div>
+      </div>`).join('');
+    return `
+      <div class="deal-group ${isPending ? 'pending' : 'closed'}">
+        <div class="deal-group-head">
+          <div class="dg-title">📦 ${escapeHtml(g.itemName)}</div>
+          <div class="dg-summary">
+            <span class="dg-pill">👥 ${g.orders.length} ลูกค้า</span>
+            <span class="dg-pill">📦 ${g.totalQty.toLocaleString()} ${escapeHtml(g.unit.split(' ')[0] || 'ลัง')}</span>
+            <span class="dg-pill total">💰 ฿${g.totalAmount.toLocaleString()}</span>
+          </div>
+        </div>
+        ${groupCountdown}
+        ${orderCards}
+      </div>`;
+  }).join('');
 
   // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง
   if (supplierTickTimer) clearInterval(supplierTickTimer);
@@ -1654,12 +1700,13 @@ function showRouteModal(title, bodyHtml) {
     m = document.createElement('div');
     m.id = 'route-modal';
     m.className = 'modal-overlay';
-    m.innerHTML = `<div class="account-modal" style="max-width:560px;"><div class="modal-header"><h3 id="route-modal-title"></h3><button class="modal-close-btn" onclick="document.getElementById('route-modal').classList.remove('show')">×</button></div><div class="modal-body" id="route-modal-body"></div></div>`;
+    m.innerHTML = `<div class="account-modal" style="max-width:560px;"><div class="modal-header"><h3 id="route-modal-title"></h3><button class="modal-close-btn" onclick="document.getElementById('route-modal').classList.remove('open')">×</button></div><div class="modal-body" id="route-modal-body"></div></div>`;
     document.body.appendChild(m);
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
   }
   document.getElementById('route-modal-title').textContent = title;
   document.getElementById('route-modal-body').innerHTML = bodyHtml;
-  m.classList.add('show');
+  m.classList.add('open');
 }
 
 function printAllClosedPDF() {
