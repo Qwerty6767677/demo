@@ -1493,13 +1493,13 @@ function addSupplierOrder(order) {
   saveSupplierOrders(list);
 }
 function seedSupplierOrdersIfEmpty() {
-  // สร้าง/รีเฟรชข้อมูลตัวอย่างทุกครั้ง — ดีลกลุ่ม: ลูกค้าที่สั่งสินค้าเดียวกันจะปิดดีลพร้อมกัน
+  // ✅ Seed ตัวอย่าง "เฉพาะ" ตอน localStorage ว่าง — ห้ามทับออเดอร์จริงของลูกค้า
+  if (getSupplierOrders().length > 0) return;
   const now = Date.now();
-  // ตัวจับเวลาแยกต่อ "สินค้า" (ดีลกลุ่ม) ไม่ใช่ต่อออเดอร์
   const dealClose = {
-    oil:   now + 1000 * 60 * 3,   // ดีลน้ำมัน — ปิดพร้อมกันใน 3 นาที
-    milk:  now + 1000 * 60 * 8,   // ดีลนม — ปิดพร้อมกันใน 8 นาที
-    snack: now - 1000 * 60,       // ดีลขนม — หมดเวลาแล้ว (ปิดอัตโนมัติ)
+    oil:   now + 1000 * 60 * 3,
+    milk:  now + 1000 * 60 * 8,
+    snack: now - 1000 * 60,
   };
   const seeds = [
     { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
@@ -1520,7 +1520,7 @@ function seedSupplierOrdersIfEmpty() {
     { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: dealClose.oil, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค', contact: '02-415-7788',
       address: { detail: '88 ถ.พระราม 2 ซ.34', subdistrict: 'แสมดำ', district: 'บางขุนเทียน', province: 'กรุงเทพฯ', zip: '10150' },
       category: 'ของแห้ง',
-      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
+      items: [{ id: 'oil', name: 'น้ำมืนพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
       totalAmount: 1485, depositAmount: 445, status: 'pending' },
   ];
   saveSupplierOrders(seeds);
