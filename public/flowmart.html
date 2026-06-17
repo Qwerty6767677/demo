@@ -1341,24 +1341,61 @@ function showToast(msg) {
 
 function toggleChat() { document.getElementById('chat-window').classList.toggle('open'); }
 
-function sendChatMessage() {
+const chatHistory = [];
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderMarkdown(s) {
+  let h = escapeHtml(s);
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+
+async function sendChatMessage() {
   const input = document.getElementById('chat-input');
+  const sendBtn = document.querySelector('.chat-send-btn');
   const txt = input.value.trim(); if (!txt) return;
 
   const msgBox = document.getElementById('chat-messages');
-  msgBox.innerHTML += `<div class="msg-bubble user">${txt}</div>`;
+  msgBox.innerHTML += `<div class="msg-bubble user">${escapeHtml(txt)}</div>`;
   input.value = '';
+  input.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
   msgBox.scrollTop = msgBox.scrollHeight;
+
+  chatHistory.push({ role: 'user', content: txt });
 
   const typing = document.getElementById('chat-typing');
   typing.style.display = 'block';
+  msgBox.scrollTop = msgBox.scrollHeight;
 
-  setTimeout(() => {
+  const ctx = `[บริบทผู้ใช้: จังหวัด ${detectedProvince || 'ไม่ทราบ'}, Trust Score ${clientTrustScore}/100${currentUser ? ', ชื่อ ' + currentUser.name : ''}]`;
+  const payload = [
+    { role: 'user', content: ctx },
+    ...chatHistory.slice(-12),
+  ];
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: payload }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'AI error');
+    const reply = data.text || 'ขออภัย ไม่มีคำตอบในขณะนี้';
+    chatHistory.push({ role: 'assistant', content: reply });
+    msgBox.innerHTML += `<div class="msg-bubble ai">${renderMarkdown(reply)}</div>`;
+  } catch (e) {
+    msgBox.innerHTML += `<div class="msg-bubble ai">⚠️ ${escapeHtml(e.message || 'เชื่อมต่อ AI ไม่สำเร็จ')}</div>`;
+  } finally {
     typing.style.display = 'none';
-    let reply = `ระบบ AI เชื่อมโยงข้อมูลที่อยู่จัดส่งและคะแนนความประพฤติของคุณเรียบร้อยแล้ว มีข้อมูลจุดจอดรับสินค้าประจำจังหวัด ${detectedProvince} ส่วนใดที่ต้องการให้ช่วยเหลือเพิ่มเติมไหมครับ?`;
-    msgBox.innerHTML += `<div class="msg-bubble ai">${reply}</div>`;
+    input.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
+    input.focus();
     msgBox.scrollTop = msgBox.scrollHeight;
-  }, 1000);
+  }
 }
 
 // ============ AUTH SYSTEM ============
