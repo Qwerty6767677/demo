@@ -1384,9 +1384,9 @@ function renderMarket() {
           <div class="buy-action-row">
             <span class="min-text">ขั้นต่ำ: <b>${item.min} ลัง</b></span>
             <div class="qty-stepper">
-              <button onclick="updateQty('${item.id}', -1)" ${isBanned ? 'disabled' : ''}>−</button>
+              <button onclick="updateQty('${item.id}', -1)" ${(isBanned || isClosed) ? 'disabled' : ''}>−</button>
               <div class="qty-val">${item.myQty}</div>
-              <button onclick="updateQty('${item.id}', 1)" ${(item.status === 'hot' || isBanned) ? 'disabled' : ''}>+</button>
+              <button onclick="updateQty('${item.id}', 1)" ${(item.status === 'hot' || isBanned || isClosed) ? 'disabled' : ''}>+</button>
             </div>
           </div>
         </div>
