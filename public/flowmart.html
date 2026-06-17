@@ -670,6 +670,7 @@
   <div class="sub-tabs">
     <button class="sub-tab-btn active" id="sub-tab-market" onclick="switchPage('market')">รายการสินค้าดีลกลุ่ม</button>
     <button class="sub-tab-btn" id="sub-tab-orders" onclick="switchPage('orders')">บิลสรุปจองร่วม (<span id="cart-count">0</span>)</button>
+    <button class="sub-tab-btn" id="sub-tab-dashboard" onclick="switchPage('dashboard')">📊 แดชบอร์ด</button>
   </div>
 
   <div id="page-market" class="page active">
@@ -683,7 +684,138 @@
       <div id="receipt-list"></div>
     </div>
   </div>
+
+  <div id="page-dashboard" class="page">
+    <div class="dash-hero">
+      <div class="dash-hero-label">Flowmart Insights</div>
+      <div class="dash-hero-title">ภาพรวมดีลกลุ่มประจำสัปดาห์</div>
+      <div class="dash-hero-sub">อัปเดตล่าสุด: เมื่อสักครู่ · ครอบคลุม 12 จังหวัดทั่วประเทศ</div>
+      <div class="dash-hero-row">
+        <div class="dash-hero-metric">
+          <div class="v" id="hero-revenue">฿0</div>
+          <div class="l">ยอดขายรวม (7 วัน)</div>
+          <div class="d">▲ 18.4% จากสัปดาห์ก่อน</div>
+        </div>
+        <div class="dash-hero-metric">
+          <div class="v" id="hero-orders">0</div>
+          <div class="l">ออเดอร์รวม</div>
+          <div class="d">▲ 12.1%</div>
+        </div>
+        <div class="dash-hero-metric">
+          <div class="v" id="hero-groups">0</div>
+          <div class="l">ดีลกลุ่มที่สำเร็จ</div>
+          <div class="d">▲ 7 ดีลใหม่</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card s1">
+        <div class="icon">💰</div>
+        <div class="stat-label">ยอดสั่งซื้อวันนี้</div>
+        <div class="stat-val" id="stat-today">฿0</div>
+        <div class="stat-delta up">▲ 9.2% vs เมื่อวาน</div>
+      </div>
+      <div class="stat-card s2">
+        <div class="icon">📦</div>
+        <div class="stat-label">ออเดอร์ใหม่</div>
+        <div class="stat-val" id="stat-new">0</div>
+        <div class="stat-delta up">▲ 24 ออเดอร์</div>
+      </div>
+      <div class="stat-card s3">
+        <div class="icon">👥</div>
+        <div class="stat-label">สมาชิกกลุ่มที่ใช้งาน</div>
+        <div class="stat-val" id="stat-users">0</div>
+        <div class="stat-delta up">▲ 156 รายใหม่</div>
+      </div>
+      <div class="stat-card s4">
+        <div class="icon">⭐</div>
+        <div class="stat-label">คะแนนความเชื่อใจเฉลี่ย</div>
+        <div class="stat-val" id="stat-trust">0</div>
+        <div class="stat-delta up">▲ 2.4 จุด</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">📈 ยอดสั่งซื้อรายวัน</div>
+            <div class="dash-card-sub">7 วันย้อนหลัง · บาท</div>
+          </div>
+          <span class="pill">รายสัปดาห์</span>
+        </div>
+        <div id="line-chart"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">🥧 สัดส่วนตามหมวด</div>
+            <div class="dash-card-sub">% ของยอดขายรวม</div>
+          </div>
+        </div>
+        <div class="donut-wrap">
+          <div id="donut-chart"></div>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">🗺️ พื้นที่จังหวัดที่สั่งซื้อสูงสุด</div>
+            <div class="dash-card-sub">จำนวนออเดอร์รวมต่อจังหวัด</div>
+          </div>
+          <span class="pill">TOP 8</span>
+        </div>
+        <div id="province-bars"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">🏆 สินค้าขายดี</div>
+            <div class="dash-card-sub">จัดอันดับตามยอดร่วมกลุ่ม</div>
+          </div>
+        </div>
+        <div class="top-list" id="top-products"></div>
+      </div>
+    </div>
+
+    <div class="dash-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">📊 ออเดอร์ตามช่วงเวลา</div>
+            <div class="dash-card-sub">การกระจายของออเดอร์ใน 24 ชม.</div>
+          </div>
+        </div>
+        <div id="hour-chart"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div>
+            <div class="dash-card-title">🔔 กิจกรรมล่าสุด</div>
+            <div class="dash-card-sub">ดีล / การจอง / การจัดส่ง</div>
+          </div>
+        </div>
+        <div class="act-list" id="act-list"></div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+const _OLD_DATA_PLACEHOLDER_ = 1;
+</script>
+<script>
+const DATA = [
+  { id: 'oil', emoji: '🛢️', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', cat: 'ของแห้ง', status: 'hot', statusText: '🔥 ปิดรอบแล้ว', timeText: 'ปิดดีลสำเร็จ', min: 2, pooled: 142, myQty: 0, minutesLeft: 0, tiers: [{ q: 0, p: 580 }, { q: 100, p: 495 }] },
+  { id: 'sugar', emoji: '🧂', name: 'น้ำตาลทรายขาว มิตรผล 1kg', unit: 'กระสอบ (25 ถุง)', cat: 'ของแห้ง', status: 'trending', statusText: '⚡ AI ขยายเวลา', timeText: '23 ชม. 51 นาที', min: 2, pooled: 34, myQty: 0, minutesLeft: 1431, tiers: [{ q: 0, p: 680 }, { q: 60, p: 590 }] },
+  { id: 'milk', emoji: '🥛', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', cat: 'เครื่องดื่ม', status: 'trending', statusText: '✨ แนะนำประจำโซน', timeText: '11 ชม. 14 นาที', min: 1, pooled: 18, myQty: 0, minutesLeft: 674, tiers: [{ q: 0, p: 410 }, { q: 50, p: 345 }] },
+  { id: 'snack', emoji: '🥔', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', cat: 'ขนม', status: 'niche', statusText: '⏱️ วิกฤต! <30 นาที', timeText: 'เหลือ 15 นาที', min: 4, pooled: 11, myQty: 0, minutesLeft: 15, tiers: [{ q: 0, p: 216 }, { q: 40, p: 180 }] }
+];
 
 <div class="modal-overlay" id="account-modal-layer">
   <div class="account-modal">
