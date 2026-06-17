@@ -1378,7 +1378,9 @@ function updateCartSummary() {
     }
   });
   document.getElementById('summary-deposit').textContent = '฿' + depTotal.toLocaleString();
-  document.getElementById('cart-count').textContent = count;
+  // นับรวมประวัติบิลที่ยืนยันแล้ว เพื่อให้ตัวเลขในแท็บไม่นิ่งอยู่ที่ 0 หลังกดสั่ง
+  const historyCount = (typeof getCustomerOrders === 'function') ? getCustomerOrders().length : 0;
+  document.getElementById('cart-count').textContent = count + historyCount;
 }
 
 function renderReceipt() {
