@@ -1719,7 +1719,9 @@ function autoCloseExpiredOrders() {
   return changed;
 }
 function supplierOwnsOrder(o, me) {
-  if (!o || !me) return false;
+  if (!o) return false;
+  // ถ้ายังไม่ล็อกอินเป็นโรงงาน (เช่นลูกค้ามาเปิดดูแท็บนี้) → เปิดให้เห็นออเดอร์ทั้งหมด (โหมดดูจำลอง)
+  if (!me || (!me.productId && !me.category)) return true;
   if (me.productId) {
     const owns = (o.items || []).some(i => i.id === me.productId);
     if (owns) return true;
@@ -1729,12 +1731,12 @@ function supplierOwnsOrder(o, me) {
   return false;
 }
 function renderSupplierDashboard() {
-  if (!currentUser || currentUser.type !== 'supplier') return;
   autoCloseExpiredOrders();
   const users = getUsers();
-  const me = users[currentUser.email] || {};
-  document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
-  const prodLabel = me.productName || me.category || '—';
+  const me = (currentUser && currentUser.type === 'supplier') ? (users[currentUser.email] || {}) : {};
+  const isSupplier = currentUser && currentUser.type === 'supplier';
+  document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || (isSupplier ? 'โรงงาน' : 'ศูนย์รวมคำสั่งซื้อ (โหมดดู)'));
+  const prodLabel = me.productName || me.category || (isSupplier ? '—' : 'ทุกหมวด');
   document.getElementById('sup-company-meta').textContent = `สินค้าที่ขาย: ${prodLabel}${me.productDesc ? ' · ' + me.productDesc : ''}`;
 
   const all = getSupplierOrders();
