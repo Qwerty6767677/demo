@@ -1361,6 +1361,7 @@ function renderMarket() {
     });
 
     const isBanned = clientTrustScore < 40;
+    const isClosed = (getProductClosesAt(item.id) - Date.now()) <= 0;
 
     container.innerHTML += `
       <div class="product-card">
@@ -1384,9 +1385,9 @@ function renderMarket() {
           <div class="buy-action-row">
             <span class="min-text">ขั้นต่ำ: <b>${item.min} ลัง</b></span>
             <div class="qty-stepper">
-              <button onclick="updateQty('${item.id}', -1)" ${isBanned ? 'disabled' : ''}>−</button>
+              <button onclick="updateQty('${item.id}', -1)" ${(isBanned || isClosed) ? 'disabled' : ''}>−</button>
               <div class="qty-val">${item.myQty}</div>
-              <button onclick="updateQty('${item.id}', 1)" ${(item.status === 'hot' || isBanned) ? 'disabled' : ''}>+</button>
+              <button onclick="updateQty('${item.id}', 1)" ${(item.status === 'hot' || isBanned || isClosed) ? 'disabled' : ''}>+</button>
             </div>
           </div>
         </div>
@@ -1402,15 +1403,27 @@ function startMarketTicker() {
   marketTickTimer = setInterval(() => {
     const pageEl = document.getElementById('page-market');
     if (!pageEl || !pageEl.classList.contains('active')) return;
+    let needRerender = false;
     document.querySelectorAll('#market-products [data-product-closesat]').forEach(el => {
       const t = Number(el.getAttribute('data-product-closesat'));
-      el.textContent = t - Date.now() <= 0 ? 'ปิดดีลสำเร็จ' : fmtCountdown(t - Date.now());
+      const remain = t - Date.now();
+      if (remain <= 0) {
+        if (el.textContent !== 'ปิดดีลสำเร็จ') needRerender = true;
+        el.textContent = 'ปิดดีลสำเร็จ';
+      } else {
+        el.textContent = fmtCountdown(remain);
+      }
     });
+    if (needRerender) renderMarket();
   }, 1000);
 }
 
 function updateQty(id, delta) {
   const item = DATA.find(x => x.id === id);
+  if ((getProductClosesAt(item.id) - Date.now()) <= 0) {
+    showToast('ดีลนี้ปิดแล้ว ไม่สามารถสั่งเพิ่มได้');
+    return;
+  }
   item.myQty = Math.max(0, item.myQty + delta);
   renderMarket();
 }
