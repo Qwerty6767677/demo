@@ -1523,7 +1523,9 @@ function getCustomerOrders() {
   try {
     const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
     const email = currentUser ? currentUser.email : 'guest@flowmart';
-    return all.filter(o => o.customerEmail === email).sort((a, b) => b.ts - a.ts);
+    const live = (typeof getSupplierOrders === 'function' ? getSupplierOrders() : []).filter(o => o.customerEmail === email);
+    const merged = [...live, ...all.filter(o => o.customerEmail === email)];
+    return Array.from(new Map(merged.map(o => [o.id, o])).values()).sort((a, b) => b.ts - a.ts);
   } catch { return []; }
 }
 function addCustomerOrder(order) {
@@ -1574,7 +1576,7 @@ function cancelHistoryOrder(orderId) {
   showToast('⚠️ ยกเลิกบิลเรียบร้อย (คะแนนพฤติกรรมถูกหัก)');
 }
 
-function executeCheckout() {
+async function executeCheckout() {
   if(clientTrustScore < 40) {
     showToast("⚠️ บัญชีถูกระงับสิทธิ์ ไม่สามารถยืนยันคำสั่งซื้อได้");
     return;
@@ -1601,7 +1603,7 @@ function executeCheckout() {
     (byProduct[it.id] = byProduct[it.id] || []).push(it);
   });
   let createdCount = 0;
-  Object.values(byProduct).forEach((items) => {
+  for (const items of Object.values(byProduct)) {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
       const closesAt = getProductClosesAt(it.id);
@@ -1625,10 +1627,10 @@ function executeCheckout() {
       depositAmount: Math.round(totalAmount * 0.3),
       status: 'pending',
     };
-    addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม)
+    await addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม + ฐานข้อมูลกลาง)
     addCustomerOrder(order);   // บันทึกประวัติของลูกค้า
     createdCount++;
-  });
+  }
   validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
   updateCartSummary();
   renderMarket();
