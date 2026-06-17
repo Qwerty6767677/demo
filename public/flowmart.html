@@ -1558,8 +1558,8 @@ function renderSupplierDashboard() {
   const revenue = closed.reduce((s, o) => s + o.totalAmount, 0);
   const totalCases = mine.reduce((s, o) => s + o.items.reduce((a, i) => a + (i.qty || 0), 0), 0);
   document.getElementById('sup-stat-total').textContent = mine.length;
-  document.getElementById('sup-stat-pending').textContent = pending.length;
-  document.getElementById('sup-stat-closed').textContent = closed.length;
+  const elP = document.getElementById('sup-stat-pending'); if (elP) elP.textContent = pending.length;
+  const elC = document.getElementById('sup-stat-closed'); if (elC) elC.textContent = closed.length;
   const elCases = document.getElementById('sup-stat-cases');
   if (elCases) elCases.textContent = totalCases.toLocaleString();
   document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
