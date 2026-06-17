@@ -1523,7 +1523,9 @@ function getCustomerOrders() {
   try {
     const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
     const email = currentUser ? currentUser.email : 'guest@flowmart';
-    return all.filter(o => o.customerEmail === email).sort((a, b) => b.ts - a.ts);
+    const live = (typeof getSupplierOrders === 'function' ? getSupplierOrders() : []).filter(o => o.customerEmail === email);
+    const merged = [...live, ...all.filter(o => o.customerEmail === email)];
+    return Array.from(new Map(merged.map(o => [o.id, o])).values()).sort((a, b) => b.ts - a.ts);
   } catch { return []; }
 }
 function addCustomerOrder(order) {
@@ -1545,7 +1547,7 @@ function cancelOrder(id) {
 }
 
 /* ยกเลิกบิลที่ยืนยันแล้ว (ลบทั้งฝั่งลูกค้า + ฝั่งโรงงาน) — ล็อกเมื่อเหลือ < 30 นาที */
-function cancelHistoryOrder(orderId) {
+async function cancelHistoryOrder(orderId) {
   const supplierList = getSupplierOrders();
   const target = supplierList.find(o => o.id === orderId);
   if (target) {
@@ -1563,6 +1565,7 @@ function cancelHistoryOrder(orderId) {
 
   // ลบฝั่งโรงงาน
   saveSupplierOrders(supplierList.filter(o => o.id !== orderId));
+  try { await deleteCloudOrder(orderId); } catch(e) { console.warn('delete cloud order failed', e); }
   // ลบฝั่งลูกค้า
   try {
     const all = JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY) || '[]');
@@ -1574,7 +1577,7 @@ function cancelHistoryOrder(orderId) {
   showToast('⚠️ ยกเลิกบิลเรียบร้อย (คะแนนพฤติกรรมถูกหัก)');
 }
 
-function executeCheckout() {
+async function executeCheckout() {
   if(clientTrustScore < 40) {
     showToast("⚠️ บัญชีถูกระงับสิทธิ์ ไม่สามารถยืนยันคำสั่งซื้อได้");
     return;
@@ -1601,7 +1604,7 @@ function executeCheckout() {
     (byProduct[it.id] = byProduct[it.id] || []).push(it);
   });
   let createdCount = 0;
-  Object.values(byProduct).forEach((items) => {
+  for (const items of Object.values(byProduct)) {
     const orderItems = items.map(it => {
       const price = getActiveTier(it).p;
       const closesAt = getProductClosesAt(it.id);
@@ -1625,10 +1628,10 @@ function executeCheckout() {
       depositAmount: Math.round(totalAmount * 0.3),
       status: 'pending',
     };
-    addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม)
+    await addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม + ฐานข้อมูลกลาง)
     addCustomerOrder(order);   // บันทึกประวัติของลูกค้า
     createdCount++;
-  });
+  }
   validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
   updateCartSummary();
   renderMarket();
@@ -1640,13 +1643,53 @@ function executeCheckout() {
 
 /* ============ SUPPLIER ORDERS STORE ============ */
 const SUPPLIER_ORDERS_KEY = 'flowmart_supplier_orders';
+const FLOWMART_ORDERS_API = '/api/flowmart-orders';
+let flowmartCloudReady = false;
+let flowmartCloudSyncing = false;
 function getSupplierOrders() {
   try { return JSON.parse(localStorage.getItem(SUPPLIER_ORDERS_KEY) || '[]'); } catch { return []; }
 }
 function saveSupplierOrders(list) {
   localStorage.setItem(SUPPLIER_ORDERS_KEY, JSON.stringify(list));
 }
-function addSupplierOrder(order) {
+function mergeSupplierOrders(incoming) {
+  const merged = new Map([...incoming, ...getSupplierOrders()].map(o => [o.id, o]));
+  const list = Array.from(merged.values()).sort((a, b) => b.ts - a.ts);
+  saveSupplierOrders(list);
+  return list;
+}
+async function fetchCloudOrders() {
+  if (flowmartCloudSyncing) return getSupplierOrders();
+  flowmartCloudSyncing = true;
+  try {
+    const res = await fetch(FLOWMART_ORDERS_API, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'โหลดออเดอร์จาก Cloud ไม่สำเร็จ');
+    flowmartCloudReady = true;
+    return mergeSupplierOrders(Array.isArray(data.orders) ? data.orders : []);
+  } catch (e) {
+    console.warn('Flowmart Cloud sync failed:', e);
+    return getSupplierOrders();
+  } finally {
+    flowmartCloudSyncing = false;
+  }
+}
+async function syncOrderToCloud(order, method = 'POST') {
+  const res = await fetch(FLOWMART_ORDERS_API, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'บันทึกออเดอร์ขึ้น Cloud ไม่สำเร็จ');
+  flowmartCloudReady = true;
+  return data.order || order;
+}
+async function deleteCloudOrder(orderId) {
+  const res = await fetch(`${FLOWMART_ORDERS_API}?id=${encodeURIComponent(orderId)}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('ลบออเดอร์จาก Cloud ไม่สำเร็จ');
+}
+async function addSupplierOrder(order) {
   const list = getSupplierOrders();
   // ดีลกลุ่ม: ถ้ามีออเดอร์ pending ของ "สินค้าเดียวกัน" อยู่แล้ว ใช้ closesAt เดียวกัน (ปิดพร้อมกัน)
   if (!order.closesAt) {
@@ -1661,6 +1704,12 @@ function addSupplierOrder(order) {
   }
   list.unshift(order);
   saveSupplierOrders(list);
+  try {
+    await syncOrderToCloud(order, 'POST');
+  } catch (e) {
+    showToast('⚠️ บันทึกในเครื่องแล้ว แต่ยังส่งขึ้นเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่/เช็กเน็ต');
+    throw e;
+  }
 }
 function seedSupplierOrdersIfEmpty() {
   // ✅ Seed ตัวอย่าง "เฉพาะ" ตอน localStorage ว่าง — ห้ามทับออเดอร์จริงของลูกค้า
@@ -1714,6 +1763,7 @@ function autoCloseExpiredOrders() {
       o.status = 'closed';
       o.closedAt = o.closesAt;
       changed = true;
+      syncOrderToCloud(o, 'PATCH').catch(e => console.warn('close cloud order failed', e));
     }
   });
   if (changed) saveSupplierOrders(list);
@@ -1731,8 +1781,9 @@ function supplierOwnsOrder(o, me) {
   if (me.category) return o.category === me.category;
   return false;
 }
-function renderSupplierDashboard() {
+async function renderSupplierDashboard() {
   autoCloseExpiredOrders();
+  await fetchCloudOrders();
   const users = getUsers();
   const me = (currentUser && currentUser.type === 'supplier') ? (users[currentUser.email] || {}) : {};
   const isSupplier = currentUser && currentUser.type === 'supplier';
@@ -1831,9 +1882,17 @@ function renderSupplierDashboard() {
   // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง + ตรวจจับออเดอร์ใหม่แบบเรียลไทม์
   if (supplierTickTimer) clearInterval(supplierTickTimer);
   let lastSnapshot = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+  let lastCloudPoll = Date.now();
   supplierTickTimer = setInterval(() => {
     const pageEl = document.getElementById('page-supplier');
     if (!pageEl || !pageEl.classList.contains('active')) return;
+    if (Date.now() - lastCloudPoll >= 3000) {
+      lastCloudPoll = Date.now();
+      fetchCloudOrders().then(() => {
+        const cloudSnap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+        if (cloudSnap !== lastSnapshot) renderSupplierDashboard();
+      });
+    }
     // มีออเดอร์ใหม่จากลูกค้า (หรือถูกแก้) → re-render ทันที
     const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
     if (snap !== lastSnapshot) {
