@@ -1361,6 +1361,7 @@ function renderMarket() {
     });
 
     const isBanned = clientTrustScore < 40;
+    const isClosed = (getProductClosesAt(item.id) - Date.now()) <= 0;
 
     container.innerHTML += `
       <div class="product-card">
