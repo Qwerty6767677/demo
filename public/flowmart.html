@@ -1441,7 +1441,7 @@ function executeCheckout() {
     });
   });
   validItems.forEach(it => { it.pooled += it.myQty; it.myQty = 0; });
-  updateCartCount();
+  updateCartSummary();
   renderMarket();
   showToast(`🎉 ส่งคำสั่งซื้อ ${validItems.length} รายการไปยังโรงงานในพื้นที่ จ.${detectedProvince} แล้ว`);
 }
