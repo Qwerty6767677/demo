@@ -1720,30 +1720,30 @@ function seedSupplierOrdersIfEmpty() {
   const now = Date.now();
   const dealClose = {
     oil:   now + 1000 * 60 * 3,
-    milk:  now + 1000 * 60 * 8,
-    snack: now - 1000 * 60,
+    coke:  now + 1000 * 60 * 8,
+    lays:  now - 1000 * 60,
   };
   const seeds = [
     { id: 'ORD-DEMO-001', ts: now - 86400000, closesAt: dealClose.oil, customerEmail: 'somchai@shop.co.th', customerName: 'ร้านโชห่วยลุงสมชาย', contact: '081-234-5678',
       address: { detail: '128/4 ม.3 ซ.เพชรเกษม 81', subdistrict: 'หนองค้างพลู', district: 'หนองแขม', province: 'กรุงเทพฯ', zip: '10160' },
       category: 'ของแห้ง',
-      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
+      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1 ลิตร', unit: 'ลัง (12 ขวด)', qty: 5, price: 495, total: 2475 }],
       totalAmount: 2475, depositAmount: 742, status: 'pending' },
-    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.milk, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
+    { id: 'ORD-DEMO-002', ts: now - 3600000, closesAt: dealClose.coke, customerEmail: 'malee@cafe.com', customerName: 'คาเฟ่บ้านสวนมาลี', contact: '089-555-0123',
       address: { detail: '55 ม.7 ถ.รังสิต-นครนายก', subdistrict: 'บึงยี่โถ', district: 'ธัญบุรี', province: 'ปทุมธานี', zip: '12130' },
       category: 'เครื่องดื่ม',
-      items: [{ id: 'milk', name: 'นมยูเอชที โฟร์โมสต์ 225ml', unit: 'ลัง (48 กล่อง)', qty: 8, price: 345, total: 2760 }],
-      totalAmount: 2760, depositAmount: 828, status: 'pending' },
-    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.snack, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
+      items: [{ id: 'coke', name: 'โค้ก 500 มล.', unit: 'แพ็ค (12 ขวด)', qty: 8, price: 180, total: 1440 }],
+      totalAmount: 1440, depositAmount: 432, status: 'pending' },
+    { id: 'ORD-DEMO-003', ts: now - 7200000, closesAt: dealClose.lays, customerEmail: 'nattapong@mart.co.th', customerName: 'มินิมาร์ทพี่ณัฐ', contact: '062-987-6543',
       address: { detail: '12/9 ซ.รามคำแหง 24', subdistrict: 'หัวหมาก', district: 'บางกะปิ', province: 'กรุงเทพฯ', zip: '10240' },
       category: 'ขนม',
-      items: [{ id: 'snack', name: 'เลย์ มันฝรั่งทอดกรอบ 42g', unit: 'แพ็ค (12 ซอง)', qty: 10, price: 180, total: 1800 }],
-      totalAmount: 1800, depositAmount: 540, status: 'pending' },
+      items: [{ id: 'lays', name: 'เลย์ รสคลาสสิก 25g', unit: 'ลัง (30 ห่อ)', qty: 6, price: 210, total: 1260 }],
+      totalAmount: 1260, depositAmount: 378, status: 'pending' },
     { id: 'ORD-DEMO-004', ts: now - 5400000, closesAt: dealClose.oil, customerEmail: 'siri@grocery.co.th', customerName: 'ร้านศิริโชค', contact: '02-415-7788',
       address: { detail: '88 ถ.พระราม 2 ซ.34', subdistrict: 'แสมดำ', district: 'บางขุนเทียน', province: 'กรุงเทพฯ', zip: '10150' },
       category: 'ของแห้ง',
-      items: [{ id: 'oil', name: 'น้ำมันพืชปาล์ม มรกต 1L', unit: 'ลัง (12 ขวด)', qty: 3, price: 495, total: 1485 }],
-      totalAmount: 1485, depositAmount: 445, status: 'pending' },
+      items: [{ id: 'mama', name: 'มาม่า รสต้มยำกุ้ง 55g', unit: 'ลัง (30 ซอง)', qty: 4, price: 138, total: 552 }],
+      totalAmount: 552, depositAmount: 166, status: 'pending' },
   ];
   saveSupplierOrders(seeds);
 }
