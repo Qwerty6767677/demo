@@ -1376,6 +1376,10 @@ function renderMarket() {
             </div>
             <div class="ladder-box">${ladderHtml}</div>
             <div class="progress-bar-bg"><div class="progress-bar-fill ${total >= maxTier.q ? 'success' : ''}" style="width:${pct}%"></div></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:12px;">
+              <span style="color:var(--text-muted);">🔥 มีคนสั่งแล้ว <b style="color:var(--primary); font-family:var(--font-mono);">${total.toLocaleString()}</b> ลัง</span>
+              <span style="color:var(--text-muted);">เป้า ${maxTier.q.toLocaleString()} ลัง</span>
+            </div>
           </div>
           <div class="buy-action-row">
             <span class="min-text">ขั้นต่ำ: <b>${item.min} ลัง</b></span>
