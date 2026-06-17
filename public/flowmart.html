@@ -1451,7 +1451,6 @@ function handleLogin(e) {
 }
 function loginAs(email, name) {
   currentUser = { email, name };
-  sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(currentUser));
   document.getElementById('auth-overlay').classList.remove('open');
   applyUserToUI();
 }
@@ -1480,15 +1479,12 @@ function initAuth() {
   localStorage.removeItem('flowmart_session');
   localStorage.removeItem('flowmart_session_v2');
   localStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
   const rememberedEmail = localStorage.getItem(AUTH_REMEMBER_KEY) || '';
   const emailInput = document.getElementById('login-email');
   const rememberInput = document.getElementById('login-remember');
   if (emailInput) emailInput.value = rememberedEmail;
   if (rememberInput) rememberInput.checked = Boolean(rememberedEmail);
-  try {
-    const s = JSON.parse(sessionStorage.getItem(AUTH_SESSION_KEY) || 'null');
-    if (s && s.email) { currentUser = s; applyUserToUI(); return; }
-  } catch {}
   document.getElementById('auth-overlay').classList.add('open');
 }
 
