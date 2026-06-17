@@ -1400,7 +1400,7 @@ async function sendChatMessage() {
 
 // ============ AUTH SYSTEM ============
 const AUTH_USERS_KEY = 'flowmart_users';
-const AUTH_SESSION_KEY = 'flowmart_session';
+const AUTH_SESSION_KEY = 'flowmart_session_v2';
 let currentUser = null;
 
 function getUsers() { try { return JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || '{}'); } catch { return {}; } }
