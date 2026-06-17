@@ -1641,10 +1641,52 @@ document.addEventListener('DOMContentLoaded', () => {
     </form>
 
     <form id="auth-form-signup" onsubmit="return handleSignup(event)" style="display:none;">
+      <div class="type-chooser">
+        <div class="type-opt active" data-type="customer" onclick="selectAccountType('customer')">
+          <div class="ic">🛍️</div>
+          <div class="tt">ลูกค้า / ร้านค้า</div>
+          <div class="ds">ซื้อสินค้ากลุ่ม</div>
+        </div>
+        <div class="type-opt" data-type="supplier" onclick="selectAccountType('supplier')">
+          <div class="ic">🏭</div>
+          <div class="tt">โรงงาน / ซัพพลายเออร์</div>
+          <div class="ds">รับคำสั่งซื้อ</div>
+        </div>
+      </div>
+
       <div class="auth-field">
-        <label>ชื่อ / ชื่อร้านค้า</label>
+        <label id="signup-name-label">ชื่อ / ชื่อร้านค้า</label>
         <input type="text" id="signup-name" placeholder="ชื่อของคุณ" required>
       </div>
+
+      <div id="signup-supplier-extra" style="display:none;">
+        <div class="auth-field">
+          <label>ชื่อโรงงาน / บริษัท</label>
+          <input type="text" id="signup-company" placeholder="เช่น โรงงานน้ำตาลมิตรผล">
+        </div>
+        <div class="auth-field">
+          <label>หมวดสินค้าที่ขาย</label>
+          <select id="signup-category">
+            <option value="ของแห้ง">ของแห้ง / เครื่องปรุง</option>
+            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
+            <option value="ขนม">ขนม / ขบเคี้ยว</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+        <div class="auth-field">
+          <label>รายละเอียดสินค้า / ประเภท</label>
+          <textarea id="signup-product-desc" rows="2" placeholder="เช่น น้ำตาลทรายขาว, น้ำตาลทรายแดง, น้ำเชื่อม"></textarea>
+        </div>
+        <div class="auth-field">
+          <label>เบอร์โทรติดต่อ</label>
+          <input type="tel" id="signup-contact" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="auth-field">
+          <label>ที่อยู่โรงงาน</label>
+          <textarea id="signup-supplier-address" rows="2" placeholder="ที่อยู่โรงงาน / คลังสินค้า"></textarea>
+        </div>
+      </div>
+
       <div class="auth-field">
         <label>อีเมล</label>
         <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required>
