@@ -1645,11 +1645,21 @@ function renderSupplierDashboard() {
       </div>`;
   }).join('');
 
-  // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง
+  // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง + ตรวจจับออเดอร์ใหม่แบบเรียลไทม์
   if (supplierTickTimer) clearInterval(supplierTickTimer);
+  let lastSnapshot = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
   supplierTickTimer = setInterval(() => {
     const pageEl = document.getElementById('page-supplier');
     if (!pageEl || !pageEl.classList.contains('active')) return;
+    // มีออเดอร์ใหม่จากลูกค้า (หรือถูกแก้) → re-render ทันที
+    const snap = localStorage.getItem(SUPPLIER_ORDERS_KEY) || '';
+    if (snap !== lastSnapshot) {
+      lastSnapshot = snap;
+      const newCount = getSupplierOrders().filter(o => o.category === me.category).length - mine.length;
+      if (newCount > 0) showToast(`🔔 มีคำสั่งซื้อใหม่ ${newCount} รายการ`);
+      renderSupplierDashboard();
+      return;
+    }
     const expired = autoCloseExpiredOrders();
     if (expired) { renderSupplierDashboard(); return; }
     document.querySelectorAll('[data-closesat]').forEach(el => {
@@ -1657,6 +1667,10 @@ function renderSupplierDashboard() {
       el.textContent = fmtCountdown(t - Date.now());
     });
   }, 1000);
+  // ข้ามแท็บ (storage event ยิงเฉพาะแท็บอื่น)
+  window.addEventListener('storage', (e) => {
+    if (e.key === SUPPLIER_ORDERS_KEY) renderSupplierDashboard();
+  });
 }
 
 function viewCustomerAddress(orderId) {
