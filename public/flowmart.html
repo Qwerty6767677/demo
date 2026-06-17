@@ -1488,8 +1488,31 @@ function seedSupplierOrdersIfEmpty() {
 }
 
 /* ============ SUPPLIER DASHBOARD ============ */
+let supplierTickTimer = null;
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'ครบเวลาแล้ว';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}ชม ${m}น ${sec}ว`;
+  if (m > 0) return `${m}น ${sec}ว`;
+  return `${sec}ว`;
+}
+function autoCloseExpiredOrders() {
+  const list = getSupplierOrders();
+  let changed = false;
+  list.forEach(o => {
+    if (o.status === 'pending' && o.closesAt && Date.now() >= o.closesAt) {
+      o.status = 'closed';
+      o.closedAt = o.closesAt;
+      changed = true;
+    }
+  });
+  if (changed) saveSupplierOrders(list);
+  return changed;
+}
 function renderSupplierDashboard() {
   if (!currentUser || currentUser.type !== 'supplier') return;
+  autoCloseExpiredOrders();
   const users = getUsers();
   const me = users[currentUser.email] || {};
   document.getElementById('sup-company-name').textContent = '🏭 ' + (me.company || me.name || 'โรงงาน');
@@ -1505,12 +1528,29 @@ function renderSupplierDashboard() {
   document.getElementById('sup-stat-closed').textContent = closed.length;
   document.getElementById('sup-stat-revenue').textContent = '฿' + revenue.toLocaleString();
 
+  // ปุ่มเครื่องมือสำหรับโรงงาน (วางแผนเส้นทาง / พิมพ์รวม)
+  const toolbar = document.getElementById('supplier-toolbar');
+  if (toolbar) {
+    toolbar.innerHTML = `
+      <button class="sup-tool-btn route" onclick="planDeliveryRoute()" ${closed.length === 0 ? 'disabled' : ''}>
+        🗺️ AI วางแผนเส้นทางส่งของ <span class="cnt">${closed.length}</span>
+      </button>
+      <button class="sup-tool-btn bulk" onclick="printAllClosedPDF()" ${closed.length === 0 ? 'disabled' : ''}>
+        📑 พิมพ์สรุปรวมทั้งหมด (PDF) <span class="cnt">${closed.length}</span>
+      </button>`;
+  }
+
   const list = document.getElementById('supplier-orders-list');
   if (mine.length === 0) {
     list.innerHTML = `<div class="empty-state"><div class="ic">📭</div>ยังไม่มีคำสั่งซื้อในหมวด "${me.category || '—'}"<br><small>เมื่อมีลูกค้าสั่งซื้อสินค้าในหมวดของคุณ จะแสดงที่นี่</small></div>`;
     return;
   }
-  list.innerHTML = mine.map(o => `
+  list.innerHTML = mine.map(o => {
+    const remain = o.closesAt ? o.closesAt - Date.now() : 0;
+    const countdown = o.status === 'pending'
+      ? `<div class="countdown ${remain < 60000 ? 'urgent' : ''}">⏱️ ปิดดีลอัตโนมัติใน <strong data-closesat="${o.closesAt}">${fmtCountdown(remain)}</strong></div>`
+      : '';
+    return `
     <div class="order-card ${o.status}">
       <div class="order-head">
         <div>
@@ -1526,25 +1566,153 @@ function renderSupplierDashboard() {
         <span class="lbl">ยอดรวม (มัดจำ 30%: ฿${o.depositAmount.toLocaleString()})</span>
         <span class="amt">฿${o.totalAmount.toLocaleString()}</span>
       </div>
+      ${countdown}
       <div class="order-actions">
-        ${o.status === 'pending'
-          ? `<button class="btn-close-deal" onclick="closeDeal('${o.id}')">✓ สรุปและปิดดีล</button>`
-          : ''}
-        <button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>
+        <button class="btn-addr" onclick="viewCustomerAddress('${o.id}')">📍 ดูที่อยู่ลูกค้า</button>
+        ${o.status === 'closed'
+          ? `<button class="btn-print" onclick="printOrderPDF('${o.id}')">🖨️ พิมพ์สรุปคำสั่งซื้อ (PDF)</button>`
+          : `<button class="btn-print" disabled title="พิมพ์ได้หลังปิดดีล">🔒 รอปิดดีลก่อนพิมพ์</button>`}
       </div>
     </div>
-  `).join('');
+  `;}).join('');
+
+  // เริ่ม/รีเฟรช timer สำหรับนับถอยหลัง
+  if (supplierTickTimer) clearInterval(supplierTickTimer);
+  supplierTickTimer = setInterval(() => {
+    const pageEl = document.getElementById('page-supplier');
+    if (!pageEl || !pageEl.classList.contains('active')) return;
+    const expired = autoCloseExpiredOrders();
+    if (expired) { renderSupplierDashboard(); return; }
+    document.querySelectorAll('[data-closesat]').forEach(el => {
+      const t = Number(el.getAttribute('data-closesat'));
+      el.textContent = fmtCountdown(t - Date.now());
+    });
+  }, 1000);
 }
 
-function closeDeal(orderId) {
-  const list = getSupplierOrders();
-  const o = list.find(x => x.id === orderId);
+function viewCustomerAddress(orderId) {
+  const o = getSupplierOrders().find(x => x.id === orderId);
   if (!o) return;
-  o.status = 'closed';
-  o.closedAt = Date.now();
-  saveSupplierOrders(list);
-  renderSupplierDashboard();
-  showToast(`✅ ปิดดีลคำสั่งซื้อ ${orderId} เรียบร้อย พร้อมพิมพ์เอกสารส่งของได้เลย`);
+  const a = o.address;
+  const full = `${a.detail} ต.${a.subdistrict} อ.${a.district} จ.${a.province} ${a.zip}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full)}`;
+  showRouteModal(`📍 ที่อยู่ลูกค้า · ${o.id}`, `
+    <div class="addr-block">
+      <div class="addr-name">${escapeHtml(o.customerName)}</div>
+      <div class="addr-line">${escapeHtml(full)}</div>
+      ${o.contact ? `<div class="addr-line">☎ ${escapeHtml(o.contact)}</div>` : ''}
+      <div class="addr-line">📧 ${escapeHtml(o.customerEmail)}</div>
+    </div>
+    <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🗺️ เปิดใน Google Maps</a>
+  `);
+}
+
+async function planDeliveryRoute() {
+  const me = getUsers()[currentUser.email] || {};
+  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
+  const origin = me.supplierAddress || 'โรงงาน (กรุณาระบุที่อยู่โรงงานในโปรไฟล์)';
+  const stopList = closed.map((o, i) => `${i + 1}. ${o.customerName} — ${o.address.detail} ต.${o.address.subdistrict} อ.${o.address.district} จ.${o.address.province} ${o.address.zip}`).join('\n');
+  showRouteModal('🗺️ AI กำลังวางแผนเส้นทาง...', `<div class="route-loading">⏳ กำลังคำนวณเส้นทางที่ประหยัดเวลาและน้ำมันที่สุด...</div>`);
+  try {
+    const prompt = `คุณคือผู้เชี่ยวชาญด้านโลจิสติกส์ในประเทศไทย ช่วยวางแผนเส้นทางส่งของให้รถบรรทุก 1 คัน\n\nจุดเริ่มต้น (โรงงาน): ${origin}\n\nจุดส่งของทั้งหมด ${closed.length} จุด:\n${stopList}\n\nกรุณา:\n1) จัดลำดับการส่งของให้ระยะทางและเวลารวมน้อยที่สุด (Travelling Salesman อย่างง่าย)\n2) ระบุเหตุผลสั้นๆ ของการจัดลำดับ\n3) ประมาณระยะทางรวม (กม.) และเวลารวมโดยประมาณ (รวมจราจร กทม.)\n4) ให้คำแนะนำประหยัดน้ำมัน 2-3 ข้อ\n\nตอบเป็นภาษาไทย กระชับ ใช้รูปแบบรายการชัดเจน`;
+    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'AI ขัดข้อง');
+    const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${closed.map(o => encodeURIComponent(`${o.address.detail} ${o.address.subdistrict} ${o.address.district} ${o.address.province}`)).join('/')}`;
+    showRouteModal('🗺️ แผนเส้นทางส่งของจาก AI', `
+      <div class="route-summary">${renderMarkdown(data.text)}</div>
+      <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🚚 เปิดเส้นทางทั้งหมดใน Google Maps</a>
+    `);
+  } catch (e) {
+    showRouteModal('⚠️ ผิดพลาด', `<div style="color:#b91c1c;">${escapeHtml(e.message)}</div>`);
+  }
+}
+
+function showRouteModal(title, bodyHtml) {
+  let m = document.getElementById('route-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'route-modal';
+    m.className = 'modal-overlay';
+    m.innerHTML = `<div class="account-modal" style="max-width:560px;"><div class="modal-header"><h3 id="route-modal-title"></h3><button class="modal-close-btn" onclick="document.getElementById('route-modal').classList.remove('show')">×</button></div><div class="modal-body" id="route-modal-body"></div></div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('route-modal-title').textContent = title;
+  document.getElementById('route-modal-body').innerHTML = bodyHtml;
+  m.classList.add('show');
+}
+
+function printAllClosedPDF() {
+  const me = getUsers()[currentUser.email] || {};
+  const closed = getSupplierOrders().filter(o => o.category === me.category && o.status === 'closed');
+  if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
+  const supplier = me;
+  const w = window.open('', '_blank', 'width=900,height=1000');
+  if (!w) { showToast('⚠️ เบราว์เซอร์บล็อกป๊อปอัป กรุณาอนุญาต'); return; }
+  const cover = `
+    <section class="page-sheet cover">
+      <h1>📑 ใบสรุปคำสั่งซื้อรวม</h1>
+      <div class="cover-meta">${escapeHtml(supplier.company || supplier.name || '-')} · ${new Date().toLocaleString('th-TH')}</div>
+      <table class="cover-tbl">
+        <thead><tr><th>#</th><th>เลขที่</th><th>ลูกค้า</th><th>จังหวัด</th><th style="text-align:right;">ยอดรวม</th></tr></thead>
+        <tbody>${closed.map((o, i) => `<tr><td>${i + 1}</td><td>${o.id}</td><td>${escapeHtml(o.customerName)}</td><td>${escapeHtml(o.address.province)}</td><td style="text-align:right;">฿${o.totalAmount.toLocaleString()}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:800;">รวมทั้งสิ้น (${closed.length} คำสั่งซื้อ)</td><td style="text-align:right;font-weight:800;">฿${closed.reduce((s, o) => s + o.totalAmount, 0).toLocaleString()}</td></tr></tfoot>
+      </table>
+      <p class="hint">เอกสารนี้รวมใบสรุปทุกคำสั่งซื้อในเล่มเดียว — แต่ละลูกค้าจะอยู่บนหน้าใหม่ พิมพ์ครั้งเดียวได้ทุกใบ</p>
+    </section>`;
+  const pages = closed.map(o => {
+    const itemsRows = o.items.map((i, idx) => `<tr><td style="text-align:center;">${idx + 1}</td><td>${escapeHtml(i.name)}<div class="u">${escapeHtml(i.unit)}</div></td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">฿${i.price.toLocaleString()}</td><td style="text-align:right;">฿${i.total.toLocaleString()}</td></tr>`).join('');
+    return `
+    <section class="page-sheet">
+      <div class="hd"><div><h2>🛒 Flowmart</h2><div class="sm">ใบสรุปคำสั่งซื้อจากดีลกลุ่ม</div></div>
+        <div class="meta"><strong>${o.id}</strong><br>วันที่: ${new Date(o.ts).toLocaleString('th-TH')}<br>ปิดดีล: ${new Date(o.closedAt || o.closesAt).toLocaleString('th-TH')}</div></div>
+      <div class="two">
+        <div class="block"><h3>🏭 ผู้ขาย</h3><div class="nm">${escapeHtml(supplier.company || supplier.name || '-')}</div><div class="ad">${escapeHtml(supplier.supplierAddress || '-')}<br>☎ ${escapeHtml(supplier.contact || '-')}</div></div>
+        <div class="block"><h3>🛍️ ลูกค้า</h3><div class="nm">${escapeHtml(o.customerName)}</div><div class="ad">${escapeHtml(o.address.detail)}<br>ต.${escapeHtml(o.address.subdistrict)} อ.${escapeHtml(o.address.district)}<br>จ.${escapeHtml(o.address.province)} ${escapeHtml(o.address.zip)}<br>📧 ${escapeHtml(o.customerEmail)}</div></div>
+      </div>
+      <table class="items"><thead><tr><th style="width:36px;">#</th><th>สินค้า</th><th style="width:60px;">จำนวน</th><th style="width:80px;text-align:right;">ราคา</th><th style="width:100px;text-align:right;">รวม</th></tr></thead><tbody>${itemsRows}</tbody><tfoot><tr><td colspan="4" style="text-align:right;">ยอดรวม</td><td style="text-align:right;">฿${o.totalAmount.toLocaleString()}</td></tr></tfoot></table>
+      <div class="total-box"><div><div class="t">มัดจำ 30%</div><div class="a">฿${o.depositAmount.toLocaleString()}</div></div><div style="text-align:right;"><div class="t">คงเหลือเก็บปลายทาง</div><div class="a big">฿${(o.totalAmount - o.depositAmount).toLocaleString()}</div></div></div>
+      <div class="sig"><div>ลายเซ็นผู้ส่ง / โรงงาน</div><div>ลายเซ็นผู้รับ / ลูกค้า</div></div>
+    </section>`;
+  }).join('');
+  w.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>สรุปคำสั่งซื้อรวม ${closed.length} ใบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif;}
+      body{color:#0f172a;font-size:12.5px;background:#f1f5f9;}
+      .page-sheet{background:#fff;max-width:780px;margin:20px auto;padding:40px;page-break-after:always;}
+      .page-sheet:last-child{page-break-after:auto;}
+      .cover h1{font-size:24px;margin-bottom:6px;}
+      .cover-meta{color:#64748b;font-size:12px;margin-bottom:18px;}
+      .cover-tbl{width:100%;border-collapse:collapse;}
+      .cover-tbl th{background:#0f172a;color:#fff;padding:9px;text-align:left;font-size:12px;}
+      .cover-tbl td{padding:9px;border-bottom:1px solid #e2e8f0;}
+      .cover-tbl tfoot td{border-top:2px solid #0f172a;border-bottom:none;}
+      .hint{margin-top:14px;color:#64748b;font-size:11.5px;}
+      .hd{display:flex;justify-content:space-between;border-bottom:3px solid #0f172a;padding-bottom:14px;margin-bottom:16px;}
+      .hd h2{font-size:22px;}.hd .sm{font-size:11px;color:#64748b;}.hd .meta{text-align:right;font-size:11.5px;color:#475569;}
+      .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+      .block{border:1px solid #e2e8f0;border-radius:10px;padding:12px;}.block h3{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+      .block .nm{font-weight:800;margin-bottom:4px;}.block .ad{font-size:12px;color:#334155;line-height:1.5;}
+      table.items{width:100%;border-collapse:collapse;}
+      table.items th{background:#0f172a;color:#fff;padding:9px;font-size:11.5px;text-align:left;}
+      table.items td{padding:9px;border-bottom:1px solid #e2e8f0;}.items .u{font-size:10.5px;color:#64748b;}
+      .items tfoot td{font-weight:800;border-top:2px solid #0f172a;border-bottom:none;}
+      .total-box{background:#0f172a;color:#fff;padding:14px;border-radius:10px;display:flex;justify-content:space-between;margin-top:10px;}
+      .total-box .t{font-size:10.5px;opacity:.7;}.total-box .a{font-size:14px;font-weight:700;}.total-box .a.big{font-size:20px;}
+      .sig{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:30px;text-align:center;font-size:11px;color:#64748b;}
+      .sig div{border-top:1px solid #0f172a;padding-top:6px;}
+      .toolbar{position:sticky;top:0;background:#0f172a;color:#fff;padding:10px;text-align:center;z-index:10;}
+      .toolbar button{padding:8px 18px;margin:0 4px;border:0;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;}
+      .toolbar .p{background:#22c55e;color:#fff;}.toolbar .c{background:#475569;color:#fff;}
+      @media print { body{background:#fff;} .toolbar{display:none;} .page-sheet{margin:0;max-width:none;box-shadow:none;} }
+    </style></head><body>
+    <div class="toolbar"><button class="p" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF (${closed.length} ใบ)</button><button class="c" onclick="window.close()">ปิด</button></div>
+    ${cover}${pages}
+    <script>setTimeout(()=>window.print(),500);<\/script>
+    </body></html>`);
+  w.document.close();
 }
 
 function printOrderPDF(orderId) {
