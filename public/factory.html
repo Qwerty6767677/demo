@@ -97,8 +97,8 @@
     <div class="brand">
       <div class="logo">🏭</div>
       <div>
-        <h1>Factory Dashboard</h1>
-        <p>ภาพรวมยอดขายและออเดอร์ของโรงงาน Flowmart</p>
+        <h1 id="fac-title">Factory Dashboard</h1>
+        <p id="fac-subtitle">ภาพรวมยอดขายและออเดอร์ของโรงงาน</p>
       </div>
     </div>
     <div class="top-actions">
@@ -116,20 +116,64 @@
 
 <script>
 const THAI_BAHT = new Intl.NumberFormat('th-TH');
+const AUTH_SESSION_KEY = 'flowmart_session_v3';
+const AUTH_USERS_KEY = 'flowmart_users';
+
+function getSession() {
+  const found = document.cookie.split('; ').find(r => r.startsWith(AUTH_SESSION_KEY + '='));
+  let raw = found ? decodeURIComponent(found.split('=').slice(1).join('=')) : null;
+  if (!raw) raw = localStorage.getItem(AUTH_SESSION_KEY) || sessionStorage.getItem(AUTH_SESSION_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function getMe() {
+  const s = getSession();
+  if (!s || s.type !== 'supplier') return null;
+  try {
+    const users = JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || '{}');
+    return { email: s.email, ...(users[s.email] || {}) };
+  } catch { return null; }
+}
+function supplierOwnsOrder(o, me) {
+  if (!o || !me) return false;
+  if (me.productId) {
+    const owns = (o.items || []).some(i => i.id === me.productId);
+    if (owns) return true;
+    return Boolean(me.category && o.category === me.category && (o.items || []).every(i => !i.id));
+  }
+  if (me.category) return o.category === me.category;
+  return false;
+}
+
+const ME = getMe();
 
 async function loadData() {
   const root = document.getElementById('root');
+  if (!ME) {
+    root.innerHTML = `
+      <div class="empty" style="padding:60px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+        <h2 style="color:#e2e8f0;margin:0 0 8px;">เฉพาะบัญชีโรงงานเท่านั้น</h2>
+        <p style="color:#94a3b8;margin:0 0 18px;">กรุณาเข้าสู่ระบบด้วยบัญชี "โรงงาน/ผู้ขาย" เพื่อดู Dashboard ของสินค้าคุณ</p>
+        <a class="btn primary" href="/flowmart.html">ไปหน้าเข้าสู่ระบบ</a>
+      </div>`;
+    return;
+  }
+  document.getElementById('fac-title').textContent = '🏭 ' + (ME.company || ME.name || 'Dashboard โรงงาน');
+  document.getElementById('fac-subtitle').textContent = 'สินค้า: ' + (ME.productName || ME.category || '—');
   root.innerHTML = '<div class="loading">⏳ กำลังโหลดข้อมูล...</div>';
   try {
     const res = await fetch('/api/flowmart-orders');
     const json = await res.json();
-    const orders = json.orders || [];
+    const all = json.orders || [];
+    const orders = all.filter(o => supplierOwnsOrder(o, ME));
     render(orders);
     document.getElementById('updated').textContent = new Date().toLocaleString('th-TH');
   } catch (e) {
     root.innerHTML = '<div class="empty">โหลดข้อมูลไม่สำเร็จ: ' + (e.message || e) + '</div>';
   }
 }
+
 
 function render(orders) {
   // Stats

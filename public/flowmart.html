@@ -770,6 +770,7 @@
   body.role-supplier .mall-cart-bar,
   body.role-supplier .nike-nav-container { display: none !important; }
   body:not(.role-supplier) #sub-tab-supplier { display: none !important; }
+  body.role-supplier #factory-dash-btn { display: inline-flex !important; }
 
   /* signup type chooser */
   .type-chooser { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
@@ -960,7 +961,7 @@
           <input type="text" class="nike-search-input" id="search-input" placeholder="ค้นหาสินค้า" oninput="filterSearch()">
         </div>
 
-        <a href="/factory.html" class="account-trigger-btn" title="Dashboard โรงงาน" style="text-decoration:none;background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff;">🏭</a>
+        <a href="/factory.html" id="factory-dash-btn" class="account-trigger-btn" title="Dashboard โรงงาน" style="display:none;text-decoration:none;background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff;">🏭</a>
         <button class="account-trigger-btn" onclick="toggleAccountModal()" aria-label="บัญชี">👤</button>
 
       </div>
