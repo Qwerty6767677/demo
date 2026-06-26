@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiShippingRouteImport } from './routes/api/shipping'
 import { Route as ApiFlowmartOrdersRouteImport } from './routes/api/flowmart-orders'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShippingRoute = ApiShippingRouteImport.update({
+  id: '/api/shipping',
+  path: '/api/shipping',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFlowmartOrdersRoute = ApiFlowmartOrdersRouteImport.update({
@@ -33,30 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/chat': typeof ApiChatRoute
   '/api/flowmart-orders': typeof ApiFlowmartOrdersRoute
+  '/api/shipping': typeof ApiShippingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/chat': typeof ApiChatRoute
   '/api/flowmart-orders': typeof ApiFlowmartOrdersRoute
+  '/api/shipping': typeof ApiShippingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/chat': typeof ApiChatRoute
   '/api/flowmart-orders': typeof ApiFlowmartOrdersRoute
+  '/api/shipping': typeof ApiShippingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/chat' | '/api/flowmart-orders'
+  fullPaths: '/' | '/api/chat' | '/api/flowmart-orders' | '/api/shipping'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/chat' | '/api/flowmart-orders'
-  id: '__root__' | '/' | '/api/chat' | '/api/flowmart-orders'
+  to: '/' | '/api/chat' | '/api/flowmart-orders' | '/api/shipping'
+  id: '__root__' | '/' | '/api/chat' | '/api/flowmart-orders' | '/api/shipping'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiFlowmartOrdersRoute: typeof ApiFlowmartOrdersRoute
+  ApiShippingRoute: typeof ApiShippingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shipping': {
+      id: '/api/shipping'
+      path: '/api/shipping'
+      fullPath: '/api/shipping'
+      preLoaderRoute: typeof ApiShippingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/flowmart-orders': {
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiChatRoute: ApiChatRoute,
   ApiFlowmartOrdersRoute: ApiFlowmartOrdersRoute,
+  ApiShippingRoute: ApiShippingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
