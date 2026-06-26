@@ -892,6 +892,19 @@
   .route-addr { font-size:11.5px; color:#64748b; margin-top:2px; }
   .ai-tips { margin-top:12px; background:#fef3c7; border-radius:12px; padding:12px; font-size:12.5px; line-height:1.6; }
   .ai-tips-title { font-weight:800; color:#92400e; margin-bottom:6px; }
+  .route-stop.return { background:linear-gradient(90deg,#f0fdf4,transparent); }
+  .rp-progress { display:flex; flex-direction:column; gap:10px; padding:8px 0 14px; }
+  .rp-step { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; background:#f1f5f9; color:#64748b; transition:all .25s; }
+  .rp-step .rp-dot { width:28px; height:28px; border-radius:50%; background:#e2e8f0; color:#64748b; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex:none; }
+  .rp-step.active { background:linear-gradient(90deg,#eef2ff,#e0f2fe); color:#3730a3; }
+  .rp-step.active .rp-dot { background:linear-gradient(135deg,#6366f1,#0ea5e9); color:#fff; animation: ship-spin 1.2s linear infinite; }
+  .rp-step.done { background:#ecfdf5; color:#15803d; }
+  .rp-step.done .rp-dot { background:#14b8a6; color:#fff; }
+  .rp-hint { font-size:12px; color:#64748b; text-align:center; padding:6px 0 4px; }
+  .rp-error { padding:16px; background:#fef2f2; border-radius:12px; border:1px solid #fecaca; }
+  .rp-err-title { font-weight:800; color:#b91c1c; font-size:14px; margin-bottom:6px; }
+  .rp-err-hint { font-size:12.5px; color:#7f1d1d; line-height:1.6; }
+  .rp-warn { padding:10px 12px; background:#fef3c7; color:#92400e; border-radius:10px; font-size:12.5px; margin-bottom:10px; border:1px solid #fcd34d; }
   .deal-group { background: #fff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
   .deal-group.pending { border-color: #fbbf24; background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
   .deal-group.closed { border-color: #34d399; background: linear-gradient(180deg,#ecfdf5 0%,#fff 60%); }
@@ -2501,67 +2514,96 @@ async function planDeliveryRoute() {
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
   const origin = me.supplierAddress || 'โรงงาน ปทุมธานี';
 
-  // 1) คำนวณเส้นทางทันทีบนเครื่อง (nearest-neighbor TSP) — ไม่ต้องรอ AI
-  const start = { lat: FACTORY_HUB.lat, lon: FACTORY_HUB.lon };
-  const stops = closed.map(o => {
-    const prov = (o.address?.province || '').replace('จังหวัด','').trim();
-    const c = PROVINCE_COORDS[prov] || [start.lat, start.lon];
-    return { o, lat: c[0], lon: c[1] };
-  });
-  const ordered = [];
-  const remaining = [...stops];
-  let cur = start, totalKm = 0;
-  while (remaining.length) {
-    let bi = 0, bd = Infinity;
-    remaining.forEach((s, i) => { const d = haversineKm(cur, s); if (d < bd) { bd = d; bi = i; } });
-    const next = remaining.splice(bi, 1)[0];
-    next._leg = bd;
-    totalKm += bd; ordered.push(next); cur = next;
-  }
-  totalKm += haversineKm(cur, start); // กลับฮับ
-  const avgSpeed = 55;
-  const hours = totalKm / avgSpeed;
-  const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
-  const fuelLiters = (totalKm / 8).toFixed(1);
-  const fuelBaht = Math.round((totalKm / 8) * 32);
+  const stops = closed.map(o => ({
+    id: o.id,
+    name: o.customerName,
+    address: `${o.address.detail} ต.${o.address.subdistrict} อ.${o.address.district} จ.${o.address.province} ${o.address.zip} ประเทศไทย`,
+  }));
 
-  const listHtml = ordered.map((s, i) => `
-    <div class="route-stop">
-      <div class="route-no">${i + 1}</div>
-      <div class="route-info">
-        <div class="route-name">${escapeHtml(s.o.customerName)} <span class="route-dist">· ${s._leg.toFixed(1)} กม.</span></div>
-        <div class="route-addr">${escapeHtml(s.o.address.detail)} อ.${escapeHtml(s.o.address.district)} จ.${escapeHtml(s.o.address.province)}</div>
-      </div>
-    </div>`).join('');
-
-  const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${ordered.map(s => encodeURIComponent(`${s.o.address.detail} ${s.o.address.subdistrict} ${s.o.address.district} ${s.o.address.province}`)).join('/')}`;
-
-  showRouteModal('🗺️ แผนเส้นทางส่งของ (คำนวณทันที)', `
-    <div class="route-stats">
-      <div class="route-stat"><div class="rs-k">ระยะทางรวม</div><div class="rs-v">${totalKm.toFixed(0)} กม.</div></div>
-      <div class="route-stat"><div class="rs-k">เวลาโดยประมาณ</div><div class="rs-v">${hh} ชม. ${mm} น.</div></div>
-      <div class="route-stat"><div class="rs-k">น้ำมัน ~</div><div class="rs-v">${fuelLiters} ลิตร · ฿${fuelBaht.toLocaleString()}</div></div>
+  // UI: progress steps (ดูแล้วเห็นว่ากำลังทำอะไรอยู่ ไม่ค้างเงียบ)
+  const progressHtml = (active) => `
+    <div class="rp-progress">
+      ${['ส่งข้อมูลถึงเซิร์ฟเวอร์','หาพิกัดที่อยู่ลูกค้า','คำนวณระยะทางจริงทุก leg','จัดลำดับเส้นทางที่สั้นที่สุด']
+        .map((t,i)=>`<div class="rp-step ${i<active?'done':i===active?'active':''}">
+          <div class="rp-dot">${i<active?'✓':i+1}</div><div class="rp-text">${t}</div>
+        </div>`).join('')}
     </div>
-    <div class="route-stops">${listHtml}</div>
-    <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🚚 เปิดเส้นทางทั้งหมดใน Google Maps</a>
-    <div id="ai-tips" class="ai-tips"><div class="route-loading">🤖 น้องโฟลวกำลังคิดเคล็ดลับประหยัดน้ำมัน...</div></div>
-  `);
+    <div class="rp-hint">กำลังเรียก Google Maps จริง — ${stops.length} จุด อาจใช้เวลา ${Math.max(2, Math.ceil(stops.length*1.2))}–${Math.ceil(stops.length*2.5)} วินาที</div>`;
 
-  // 2) เสริมด้วย AI tips แบบ async + timeout 8 วิ (ถ้าช้าก็ข้าม)
+  showRouteModal('🗺️ กำลังวางแผนเส้นทางส่งของ', progressHtml(0));
+  // อัปเดต step ทุก ~1.2 วิ ให้รู้สึกว่าคืบหน้า (เป็นภาพลวง — งานจริงเสร็จเมื่อ fetch เสร็จ)
+  let step = 1;
+  document.getElementById('route-modal-body').innerHTML = progressHtml(step);
+  const tick = setInterval(() => {
+    step = Math.min(step + 1, 3);
+    const body = document.getElementById('route-modal-body');
+    if (body && body.querySelector('.rp-progress')) body.innerHTML = progressHtml(step);
+  }, 1400);
+
   try {
-    const stopList = ordered.map((s, i) => `${i + 1}. ${s.o.customerName} จ.${s.o.address.province}`).join('\n');
-    const prompt = `ลำดับการส่งของรถบรรทุก 1 คัน รวม ${ordered.length} จุด ระยะรวม ${totalKm.toFixed(0)} กม.:\n${stopList}\n\nให้คำแนะนำประหยัดน้ำมัน/เวลา 3 ข้อสั้นๆ เป็นภาษาไทย ใช้ bullet`;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }), signal: ctrl.signal });
-    clearTimeout(t);
-    const data = await res.json();
-    const tipsEl = document.getElementById('ai-tips');
-    if (tipsEl && data?.text) tipsEl.innerHTML = `<div class="ai-tips-title">💡 เคล็ดลับจากน้องโฟลว</div>${renderMarkdown(data.text)}`;
-    else if (tipsEl) tipsEl.remove();
-  } catch {
-    const tipsEl = document.getElementById('ai-tips');
-    if (tipsEl) tipsEl.remove();
+    const tm = setTimeout(() => ctrl.abort(), 45000); // 45s hard timeout
+    const res = await fetch('/api/route-plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ origin, stops }), signal: ctrl.signal,
+    });
+    clearTimeout(tm); clearInterval(tick);
+    let data = null; try { data = await res.json(); } catch {}
+    if (!res.ok || !data || !Array.isArray(data.stops)) {
+      const msg = data?.error || `เซิร์ฟเวอร์ตอบ ${res.status}`;
+      showRouteModal('⚠️ วางแผนเส้นทางไม่สำเร็จ', `
+        <div class="rp-error">
+          <div class="rp-err-title">${escapeHtml(msg)}</div>
+          <div class="rp-err-hint">ตรวจที่อยู่ลูกค้าให้ครบ (บ้านเลขที่ ตำบล อำเภอ จังหวัด รหัสไปรษณีย์) แล้วลองใหม่</div>
+          <button class="map-link" style="margin-top:10px;cursor:pointer;border:none;width:100%;" onclick="planDeliveryRoute()">🔄 ลองคำนวณใหม่</button>
+        </div>`);
+      return;
+    }
+
+    const hh = Math.floor(data.totalSec / 3600), mm = Math.round((data.totalSec % 3600) / 60);
+    const stopsHtml = data.stops.map((s, i) => `
+      <div class="route-stop">
+        <div class="route-no">${i + 1}</div>
+        <div class="route-info">
+          <div class="route-name">${escapeHtml(s.name)}
+            <span class="route-dist">· ${s.legKm != null ? s.legKm.toFixed(1)+' กม.' : '—'}${s.legSec ? ' · '+Math.round(s.legSec/60)+' น.' : ''}</span>
+          </div>
+          <div class="route-addr">${escapeHtml(s.formattedAddress || s.address)}</div>
+        </div>
+      </div>`).join('');
+
+    const failedHtml = (data.failed?.length)
+      ? `<div class="rp-warn">⚠️ หาพิกัดไม่พบ: ${data.failed.map(escapeHtml).join(', ')} — ข้ามไปก่อน</div>` : '';
+
+    const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${data.stops.map(s => encodeURIComponent(s.formattedAddress || s.address)).join('/')}/${encodeURIComponent(origin)}`;
+
+    showRouteModal('🗺️ แผนเส้นทางส่งของ (Google Maps)', `
+      <div class="route-stats">
+        <div class="route-stat"><div class="rs-k">ระยะทางรวม</div><div class="rs-v">${data.totalKm.toFixed(1)} กม.</div></div>
+        <div class="route-stat"><div class="rs-k">เวลาขับรวม</div><div class="rs-v">${hh} ชม. ${mm} น.</div></div>
+        <div class="route-stat"><div class="rs-k">น้ำมัน ~</div><div class="rs-v">${data.fuelLiters} ล. · ฿${data.fuelBaht.toLocaleString()}</div></div>
+      </div>
+      ${failedHtml}
+      <div class="route-stops">${stopsHtml}
+        <div class="route-stop return">
+          <div class="route-no">↺</div>
+          <div class="route-info">
+            <div class="route-name">กลับฮับโรงงาน <span class="route-dist">· ${data.returnKm != null ? data.returnKm.toFixed(1)+' กม.' : '—'}</span></div>
+            <div class="route-addr">${escapeHtml(origin)}</div>
+          </div>
+        </div>
+      </div>
+      <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🚚 เปิดเส้นทางทั้งหมดใน Google Maps</a>
+    `);
+  } catch (e) {
+    clearInterval(tick);
+    const aborted = e?.name === 'AbortError';
+    showRouteModal('⚠️ คำนวณเส้นทางไม่สำเร็จ', `
+      <div class="rp-error">
+        <div class="rp-err-title">${aborted ? 'หมดเวลา 45 วินาที — บริการแผนที่ตอบช้า' : escapeHtml(e?.message || 'เกิดข้อผิดพลาด')}</div>
+        <div class="rp-err-hint">ลองลดจำนวนคำสั่งซื้อ หรือกดลองใหม่อีกครั้ง</div>
+        <button class="map-link" style="margin-top:10px;cursor:pointer;border:none;width:100%;" onclick="planDeliveryRoute()">🔄 ลองคำนวณใหม่</button>
+      </div>`);
   }
 }
 
