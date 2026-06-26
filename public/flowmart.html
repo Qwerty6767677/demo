@@ -1343,22 +1343,30 @@ function resolveUserPoint() {
 }
 
 /** ราคา = base + per-km (มี cap) — ส่งกลุ่ม 1 บิล ไม่อิงน้ำหนัก */
+function feeFromKm(km){
+  if (km <= 15)       return 39;
+  if (km <= 40)       return 69;
+  if (km <= 90)       return 109;
+  if (km <= 180)      return 149;
+  if (km <= 350)      return 199;
+  if (km <= 600)      return 259;
+  return 299;
+}
 function computeShipping(subtotal) {
-  const p = resolveUserPoint();
-  const km = Math.max(0, haversineKm(FACTORY_HUB, p));
-  // ขั้นบันได: ใกล้ถูก ไกลคงไม่เว่อ
-  let fee;
-  if (km <= 15)       fee = 39;
-  else if (km <= 40)  fee = 69;
-  else if (km <= 90)  fee = 109;
-  else if (km <= 180) fee = 149;
-  else if (km <= 350) fee = 199;
-  else if (km <= 600) fee = 259;
-  else                fee = 299;    // เพดานสูงสุด
-  // ส่งฟรีเมื่อยอดถึงเกณฑ์ (สนับสนุนรวมกลุ่ม)
+  // หากมีผลลัพธ์ "แม่นยำ" จาก Google Maps ใช้เลย ไม่งั้นใช้ haversine โดยประมาณ
+  const acc = window._accurateShipping;
+  let km, source;
+  if (acc && Number.isFinite(acc.km)) {
+    km = acc.km; source = 'maps';
+  } else {
+    const p = resolveUserPoint();
+    km = Math.max(0, haversineKm(FACTORY_HUB, p));
+    source = p.source;
+  }
+  const fee = feeFromKm(km);
   const freeAt = 3000;
   const free = subtotal >= freeAt;
-  return { km: Math.round(km), fee: free ? 0 : fee, originalFee: fee, free, freeAt, source: p.source };
+  return { km: Math.round(km * 10) / 10, fee: free ? 0 : fee, originalFee: fee, free, freeAt, source, durationText: acc?.durationText, formattedAddress: acc?.formattedAddress };
 }
 
 function shippingZoneLabel(km) {
@@ -1367,6 +1375,38 @@ function shippingZoneLabel(km) {
   if (km <= 350) return 'โซนภูมิภาค';
   return 'โซนไกล (มีเพดานราคา)';
 }
+
+/* ============ เรียก /api/shipping ขอระยะทาง/ค่าส่งแบบแม่นยำจาก Google Maps ============ */
+function buildFullAddress(){
+  const d = document.getElementById('input-address-detail')?.value?.trim() || '';
+  const sd = document.getElementById('input-subdistrict')?.value?.trim() || '';
+  const ds = document.getElementById('input-district')?.value?.trim() || '';
+  const pv = document.getElementById('input-province')?.value?.trim() || '';
+  const zp = document.getElementById('input-zipcode')?.value?.trim() || '';
+  return [d, sd && `ต.${sd}`, ds && `อ.${ds}`, pv && `จ.${pv}`, zp, 'ประเทศไทย'].filter(Boolean).join(' ');
+}
+let _shipReqId = 0;
+let _shipDebounce = null;
+async function refreshAccurateShipping(){
+  const addr = buildFullAddress();
+  if (!addr || addr.length < 12) return;
+  clearTimeout(_shipDebounce);
+  _shipDebounce = setTimeout(async () => {
+    const myId = ++_shipReqId;
+    try {
+      const res = await fetch('/api/shipping', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: addr, subtotal: 0 }),
+      });
+      const data = await res.json();
+      if (myId !== _shipReqId) return; // มีคำขอใหม่กว่า
+      if (!res.ok) { console.warn('shipping api', data); return; }
+      window._accurateShipping = data;
+      try { updateCartSummary(); } catch {}
+    } catch (e) { console.warn('shipping fetch failed', e); }
+  }, 400);
+}
+
 
 /* ============ Skeleton Loading ============ */
 function renderMarketSkeleton(n) {
