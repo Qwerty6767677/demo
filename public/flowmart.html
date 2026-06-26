@@ -1773,17 +1773,40 @@ function updateQty(id, delta) {
 }
 
 function updateCartSummary() {
-  let depTotal = 0, count = 0;
+  let depTotal = 0, subtotal = 0, count = 0;
   DATA.forEach(item => {
     if (item.myQty >= item.min) {
       count++;
-      depTotal += Math.round((item.myQty * getActiveTier(item).p) * 0.3);
+      const line = item.myQty * getActiveTier(item).p;
+      subtotal += line;
+      depTotal += Math.round(line * 0.3);
     }
   });
   document.getElementById('summary-deposit').textContent = '฿' + depTotal.toLocaleString();
-  // นับรวมประวัติบิลที่ยืนยันแล้ว เพื่อให้ตัวเลขในแท็บไม่นิ่งอยู่ที่ 0 หลังกดสั่ง
   const historyCount = (typeof getCustomerOrders === 'function') ? getCustomerOrders().length : 0;
   document.getElementById('cart-count').textContent = count + historyCount;
+
+  // shipping breakdown
+  const pill = document.getElementById('ship-pill');
+  const detail = document.getElementById('ship-detail');
+  const grand = document.getElementById('grand-total');
+  if (pill && detail && grand) {
+    if (count === 0) {
+      pill.className = 'pill';
+      pill.textContent = '🚚 ยังไม่มีรายการ';
+      detail.textContent = 'เลือกสินค้าเพื่อคำนวณค่าส่ง';
+      grand.textContent = '';
+    } else {
+      const s = computeShipping(subtotal);
+      pill.className = 'pill' + (s.free ? ' free' : '');
+      pill.textContent = s.free
+        ? `🎉 ส่งฟรี (ยอด ≥ ฿${s.freeAt.toLocaleString()})`
+        : `🚚 ค่าส่ง ฿${s.fee}`;
+      const srcTxt = s.source === 'gps' ? '· จาก GPS' : (s.source === 'province' ? '· จากจังหวัด' : '');
+      detail.textContent = `${shippingZoneLabel(s.km)} · ระยะ ~${s.km} กม. ${srcTxt}`;
+      grand.textContent = 'รวมต้องชำระ ฿' + (depTotal + s.fee).toLocaleString();
+    }
+  }
 }
 
 function renderReceipt() {
