@@ -2028,6 +2028,7 @@ async function executeCheckout() {
     const totalAmount = orderItems.reduce((s, x) => s + x.total, 0);
     const firstItem = items[0];
     const closesAt = orderItems[0]?.closesAt || Date.now();
+    const ship = computeShipping(totalAmount);
     const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
@@ -2038,8 +2039,10 @@ async function executeCheckout() {
       address,
       category: firstItem.cat,
       items: orderItems,
-      totalAmount,
-      depositAmount: Math.round(totalAmount * 0.3),
+      totalAmount: totalAmount + ship.fee,
+      depositAmount: Math.round(totalAmount * 0.3) + ship.fee,
+      shippingFee: ship.fee,
+      shippingKm: ship.km,
       status: 'pending',
     };
     await addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม + ฐานข้อมูลกลาง)
