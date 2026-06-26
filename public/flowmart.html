@@ -1123,7 +1123,8 @@ let currentCategoryFilter = 'ทั้งหมด';
 let currentSearchQuery = '';
 let detectedProvince = 'ปทุมธานี';
 let clientTrustScore = 100;
-const DEAL_DEADLINES_KEY = 'flowmart_product_deal_deadlines_v1';
+const DEAL_DEADLINES_KEY = 'flowmart_product_deal_deadlines_v2';
+try { localStorage.removeItem('flowmart_product_deal_deadlines_v1'); } catch {}
 
 function getDealDeadlines() {
   let map = {};
