@@ -2812,8 +2812,13 @@ function initAuth() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  renderMarketSkeleton(6);     // โชว์ skeleton ก่อน
   detectUserLocation();
-  renderMarket();
+  // ปล่อยให้ skeleton อยู่สักครู่เพื่อให้ UX รู้สึกลื่น ไม่กระตุก
+  setTimeout(() => {
+    renderMarket();
+    updateCartSummary();
+  }, 420);
   seedSupplierOrdersIfEmpty();
   initAuth();
 });
