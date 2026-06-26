@@ -1518,6 +1518,7 @@ function detectUserLocation() {
     const c = PROVINCE_COORDS['ปทุมธานี'];
     if (!userCoords) userCoords = { lat: c[0], lon: c[1], source: 'default' };
     try { updateCartSummary(); } catch {}
+    refreshAccurateShipping();
   }
 }
 
