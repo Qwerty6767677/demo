@@ -1520,18 +1520,25 @@ function detectUserLocation() {
   }
 }
 
-// ผู้ใช้แก้จังหวัด → คำนวณค่าส่งใหม่
+// ผู้ใช้แก้ที่อยู่ → คำนวณค่าส่งใหม่ (ทั้ง local และเรียก Google Maps จริง)
 document.addEventListener('input', (e) => {
-  if (e.target && e.target.id === 'input-province') {
+  const id = e.target?.id;
+  if (!id) return;
+  if (id === 'input-province') {
     const v = e.target.value.replace('จังหวัด','').trim();
     if (PROVINCE_COORDS[v]) {
       const c = PROVINCE_COORDS[v];
       userCoords = { lat: c[0], lon: c[1], source: 'province' };
       detectedProvince = v;
-      try { updateCartSummary(); } catch {}
     }
   }
+  if (['input-address-detail','input-subdistrict','input-district','input-province','input-zipcode'].includes(id)) {
+    window._accurateShipping = null;   // ล้างผลเก่าก่อนได้ผลใหม่
+    try { updateCartSummary(); } catch {}
+    refreshAccurateShipping();
+  }
 });
+
 
 function toggleAccountModal() {
   document.getElementById('account-modal-layer').classList.toggle('open');
