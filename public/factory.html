@@ -121,8 +121,10 @@ const AUTH_USERS_KEY = 'flowmart_users';
 
 function getSession() {
   const found = document.cookie.split('; ').find(r => r.startsWith(AUTH_SESSION_KEY + '='));
-  if (!found) return null;
-  try { return JSON.parse(decodeURIComponent(found.split('=').slice(1).join('='))); } catch { return null; }
+  let raw = found ? decodeURIComponent(found.split('=').slice(1).join('=')) : null;
+  if (!raw) raw = localStorage.getItem(AUTH_SESSION_KEY) || sessionStorage.getItem(AUTH_SESSION_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 function getMe() {
   const s = getSession();
