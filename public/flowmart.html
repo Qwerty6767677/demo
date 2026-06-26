@@ -867,7 +867,20 @@
   .addr-line { font-size: 13px; color: #334155; line-height: 1.7; }
   .map-link { display: block; text-align: center; padding: 12px; background: linear-gradient(135deg,#22c55e,#15803d); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 700; }
   .route-summary { background: #f1f5f9; border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.7; margin-bottom: 12px; max-height: 50vh; overflow-y: auto; }
-  .route-loading { text-align: center; padding: 30px; color: #64748b; }
+  .route-loading { text-align: center; padding: 18px; color: #64748b; font-size: 13px; }
+  .route-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .route-stat { background:linear-gradient(135deg,#eef2ff,#e0f2fe); border-radius:12px; padding:10px; text-align:center; }
+  .rs-k { font-size:11px; color:#64748b; margin-bottom:2px; }
+  .rs-v { font-size:14px; font-weight:800; color:#0f172a; }
+  .route-stops { max-height:42vh; overflow-y:auto; margin-bottom:12px; }
+  .route-stop { display:flex; gap:10px; padding:10px; border-bottom:1px solid #e2e8f0; }
+  .route-stop:last-child { border-bottom:none; }
+  .route-no { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#14b8a6,#0ea5e9); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
+  .route-name { font-weight:700; font-size:13px; color:#0f172a; }
+  .route-dist { font-weight:500; color:#64748b; font-size:11px; }
+  .route-addr { font-size:11.5px; color:#64748b; margin-top:2px; }
+  .ai-tips { margin-top:12px; background:#fef3c7; border-radius:12px; padding:12px; font-size:12.5px; line-height:1.6; }
+  .ai-tips-title { font-weight:800; color:#92400e; margin-bottom:6px; }
   .deal-group { background: #fff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
   .deal-group.pending { border-color: #fbbf24; background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
   .deal-group.closed { border-color: #34d399; background: linear-gradient(180deg,#ecfdf5 0%,#fff 60%); }
