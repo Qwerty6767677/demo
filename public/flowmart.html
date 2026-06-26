@@ -892,6 +892,19 @@
   .route-addr { font-size:11.5px; color:#64748b; margin-top:2px; }
   .ai-tips { margin-top:12px; background:#fef3c7; border-radius:12px; padding:12px; font-size:12.5px; line-height:1.6; }
   .ai-tips-title { font-weight:800; color:#92400e; margin-bottom:6px; }
+  .route-stop.return { background:linear-gradient(90deg,#f0fdf4,transparent); }
+  .rp-progress { display:flex; flex-direction:column; gap:10px; padding:8px 0 14px; }
+  .rp-step { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; background:#f1f5f9; color:#64748b; transition:all .25s; }
+  .rp-step .rp-dot { width:28px; height:28px; border-radius:50%; background:#e2e8f0; color:#64748b; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex:none; }
+  .rp-step.active { background:linear-gradient(90deg,#eef2ff,#e0f2fe); color:#3730a3; }
+  .rp-step.active .rp-dot { background:linear-gradient(135deg,#6366f1,#0ea5e9); color:#fff; animation: ship-spin 1.2s linear infinite; }
+  .rp-step.done { background:#ecfdf5; color:#15803d; }
+  .rp-step.done .rp-dot { background:#14b8a6; color:#fff; }
+  .rp-hint { font-size:12px; color:#64748b; text-align:center; padding:6px 0 4px; }
+  .rp-error { padding:16px; background:#fef2f2; border-radius:12px; border:1px solid #fecaca; }
+  .rp-err-title { font-weight:800; color:#b91c1c; font-size:14px; margin-bottom:6px; }
+  .rp-err-hint { font-size:12.5px; color:#7f1d1d; line-height:1.6; }
+  .rp-warn { padding:10px 12px; background:#fef3c7; color:#92400e; border-radius:10px; font-size:12.5px; margin-bottom:10px; border:1px solid #fcd34d; }
   .deal-group { background: #fff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
   .deal-group.pending { border-color: #fbbf24; background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
   .deal-group.closed { border-color: #34d399; background: linear-gradient(180deg,#ecfdf5 0%,#fff 60%); }
