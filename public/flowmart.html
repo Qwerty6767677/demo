@@ -1251,9 +1251,14 @@
 </div>
 
 <div class="mall-cart-bar">
-  <div>
+  <div class="cart-bar-left">
     <div class="deposit-label">ยอดมัดจำกลุ่ม (30%)</div>
     <div class="total-deposit-amt" id="summary-deposit">฿0</div>
+    <div class="ship-line" id="ship-line">
+      <span class="pill" id="ship-pill">🚚 รอที่อยู่จัดส่ง</span>
+      <span id="ship-detail" style="font-size:11px;">—</span>
+      <span class="grand" id="grand-total"></span>
+    </div>
   </div>
   <button class="mall-btn" id="checkout-btn" onclick="executeCheckout()">ยืนยันการสั่งซื้อ</button>
 </div>
