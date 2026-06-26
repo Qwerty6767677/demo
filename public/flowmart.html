@@ -1932,31 +1932,52 @@ function updateCartSummary() {
   const detail = document.getElementById('ship-detail');
   const grand = document.getElementById('grand-total');
   if (pill && detail && grand) {
-    if (count === 0) {
-      pill.className = 'pill';
-      pill.textContent = '🚚 ยังไม่มีรายการ';
-      detail.textContent = 'เลือกสินค้าเพื่อคำนวณค่าส่ง';
-      grand.textContent = '';
+    const s = computeShipping(subtotal);
+    const st = window._shipStatus || { phase: 'idle' };
+    const loading = st.phase === 'geocoding' || st.phase === 'debouncing';
+    const showFee = count > 0;
+
+    pill.className = 'pill'
+      + ((showFee && s.free) ? ' free' : '')
+      + (st.phase === 'error' ? ' warn' : '')
+      + (loading ? ' loading' : '');
+
+    if (loading) {
+      pill.innerHTML = `<span class="ship-spin"></span> กำลังคำนวณค่าส่ง...`;
+    } else if (showFee && s.free) {
+      pill.innerHTML = `🎉 ส่งฟรี (ยอด ≥ ฿${s.freeAt.toLocaleString()})`;
+    } else if (showFee) {
+      pill.innerHTML = `🚚 ค่าส่ง ฿${s.fee}`;
+    } else if (st.phase === 'ok') {
+      pill.innerHTML = `🚚 ค่าส่งโดยประมาณ ฿${s.fee}`;
+    } else if (st.phase === 'error') {
+      pill.innerHTML = `⚠️ คำนวณค่าส่งไม่ได้`;
     } else {
-      const s = computeShipping(subtotal);
-      const st = window._shipStatus || { phase: 'idle' };
-      const loading = st.phase === 'geocoding' || st.phase === 'debouncing';
-      pill.className = 'pill' + (s.free ? ' free' : '') + (st.phase === 'error' ? ' warn' : '') + (loading ? ' loading' : '');
-      pill.innerHTML = s.free
-        ? `🎉 ส่งฟรี (ยอด ≥ ฿${s.freeAt.toLocaleString()})`
-        : (loading ? `<span class="ship-spin"></span> กำลังคำนวณค่าส่ง...` : `🚚 ค่าส่ง ฿${s.fee}`);
+      pill.innerHTML = `🚚 รอที่อยู่จัดส่ง`;
+    }
 
-      let statusLine = '';
-      if (st.phase === 'geocoding')   statusLine = `<div class="ship-status info">${st.message}</div>`;
-      else if (st.phase === 'debouncing') statusLine = `<div class="ship-status muted">${st.message}</div>`;
-      else if (st.phase === 'ok')     statusLine = `<div class="ship-status ok">${st.message}</div>`;
-      else if (st.phase === 'error')  statusLine = `<div class="ship-status err">⚠️ ${st.message} <button class="ship-retry" onclick="window._accurateShipping=null; refreshAccurateShipping()">ลองใหม่</button></div>`;
+    let statusLine = '';
+    if (st.phase === 'geocoding')        statusLine = `<div class="ship-status info">${st.message}</div>`;
+    else if (st.phase === 'debouncing')  statusLine = `<div class="ship-status muted">${st.message}</div>`;
+    else if (st.phase === 'ok')          statusLine = `<div class="ship-status ok">${st.message}</div>`;
+    else if (st.phase === 'error')       statusLine = `<div class="ship-status err">⚠️ ${st.message} <button class="ship-retry" onclick="window._accurateShipping=null; refreshAccurateShipping()">ลองใหม่</button></div>`;
+    else if (st.phase === 'idle' && !showFee) statusLine = `<div class="ship-status muted">กรอกที่อยู่จัดส่งให้ครบ ระบบจะคำนวณค่าส่งให้อัตโนมัติ</div>`;
 
+    // มีผลคำนวณแล้วแต่ยังไม่ใส่สินค้า → โชว์ระยะ + ที่อยู่ที่จับคู่ได้
+    if (!showFee && st.phase === 'ok' && s.formattedAddress) {
+      detail.innerHTML = `<div>📍 ${escapeHtml(s.formattedAddress)}</div>
+        <div>${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. · ขับ ~${s.durationText || '-'} · ค่าส่งโดยประมาณ ฿${s.fee}</div>
+        ${statusLine}`;
+      grand.textContent = 'เพิ่มสินค้าเพื่อสรุปยอดรวม';
+    } else if (showFee) {
       const srcTxt = s.source === 'maps'
         ? `✅ เส้นทางจริง (Google Maps)${s.durationText ? ' · ขับ ~' + s.durationText : ''}`
         : (s.source === 'gps' ? '· จาก GPS (ประมาณเส้นตรง)' : (s.source === 'province' ? '· จากจังหวัด (ประมาณ)' : '· ประมาณ'));
       detail.innerHTML = `<div>${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. ${srcTxt}</div>${statusLine}`;
       grand.textContent = 'รวมต้องชำระ ฿' + (depTotal + s.fee).toLocaleString();
+    } else {
+      detail.innerHTML = statusLine || `เลือกสินค้าเพื่อคำนวณค่าส่ง`;
+      grand.textContent = '';
     }
   }
 }
