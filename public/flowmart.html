@@ -867,7 +867,20 @@
   .addr-line { font-size: 13px; color: #334155; line-height: 1.7; }
   .map-link { display: block; text-align: center; padding: 12px; background: linear-gradient(135deg,#22c55e,#15803d); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 700; }
   .route-summary { background: #f1f5f9; border-radius: 12px; padding: 14px; font-size: 13px; line-height: 1.7; margin-bottom: 12px; max-height: 50vh; overflow-y: auto; }
-  .route-loading { text-align: center; padding: 30px; color: #64748b; }
+  .route-loading { text-align: center; padding: 18px; color: #64748b; font-size: 13px; }
+  .route-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .route-stat { background:linear-gradient(135deg,#eef2ff,#e0f2fe); border-radius:12px; padding:10px; text-align:center; }
+  .rs-k { font-size:11px; color:#64748b; margin-bottom:2px; }
+  .rs-v { font-size:14px; font-weight:800; color:#0f172a; }
+  .route-stops { max-height:42vh; overflow-y:auto; margin-bottom:12px; }
+  .route-stop { display:flex; gap:10px; padding:10px; border-bottom:1px solid #e2e8f0; }
+  .route-stop:last-child { border-bottom:none; }
+  .route-no { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#14b8a6,#0ea5e9); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
+  .route-name { font-weight:700; font-size:13px; color:#0f172a; }
+  .route-dist { font-weight:500; color:#64748b; font-size:11px; }
+  .route-addr { font-size:11.5px; color:#64748b; margin-top:2px; }
+  .ai-tips { margin-top:12px; background:#fef3c7; border-radius:12px; padding:12px; font-size:12.5px; line-height:1.6; }
+  .ai-tips-title { font-weight:800; color:#92400e; margin-bottom:6px; }
   .deal-group { background: #fff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
   .deal-group.pending { border-color: #fbbf24; background: linear-gradient(180deg,#fffbeb 0%,#fff 60%); }
   .deal-group.closed { border-color: #34d399; background: linear-gradient(180deg,#ecfdf5 0%,#fff 60%); }
@@ -2353,21 +2366,69 @@ async function planDeliveryRoute() {
   const me = getUsers()[currentUser.email] || {};
   const closed = getSupplierOrders().filter(o => supplierOwnsOrder(o, me) && o.status === "closed");
   if (closed.length === 0) { showToast('ยังไม่มีคำสั่งซื้อที่ปิดดีลแล้ว'); return; }
-  const origin = me.supplierAddress || 'โรงงาน (กรุณาระบุที่อยู่โรงงานในโปรไฟล์)';
-  const stopList = closed.map((o, i) => `${i + 1}. ${o.customerName} — ${o.address.detail} ต.${o.address.subdistrict} อ.${o.address.district} จ.${o.address.province} ${o.address.zip}`).join('\n');
-  showRouteModal('🗺️ AI กำลังวางแผนเส้นทาง...', `<div class="route-loading">⏳ กำลังคำนวณเส้นทางที่ประหยัดเวลาและน้ำมันที่สุด...</div>`);
+  const origin = me.supplierAddress || 'โรงงาน ปทุมธานี';
+
+  // 1) คำนวณเส้นทางทันทีบนเครื่อง (nearest-neighbor TSP) — ไม่ต้องรอ AI
+  const start = { lat: FACTORY_HUB.lat, lon: FACTORY_HUB.lon };
+  const stops = closed.map(o => {
+    const prov = (o.address?.province || '').replace('จังหวัด','').trim();
+    const c = PROVINCE_COORDS[prov] || [start.lat, start.lon];
+    return { o, lat: c[0], lon: c[1] };
+  });
+  const ordered = [];
+  const remaining = [...stops];
+  let cur = start, totalKm = 0;
+  while (remaining.length) {
+    let bi = 0, bd = Infinity;
+    remaining.forEach((s, i) => { const d = haversineKm(cur, s); if (d < bd) { bd = d; bi = i; } });
+    const next = remaining.splice(bi, 1)[0];
+    next._leg = bd;
+    totalKm += bd; ordered.push(next); cur = next;
+  }
+  totalKm += haversineKm(cur, start); // กลับฮับ
+  const avgSpeed = 55;
+  const hours = totalKm / avgSpeed;
+  const hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
+  const fuelLiters = (totalKm / 8).toFixed(1);
+  const fuelBaht = Math.round((totalKm / 8) * 32);
+
+  const listHtml = ordered.map((s, i) => `
+    <div class="route-stop">
+      <div class="route-no">${i + 1}</div>
+      <div class="route-info">
+        <div class="route-name">${escapeHtml(s.o.customerName)} <span class="route-dist">· ${s._leg.toFixed(1)} กม.</span></div>
+        <div class="route-addr">${escapeHtml(s.o.address.detail)} อ.${escapeHtml(s.o.address.district)} จ.${escapeHtml(s.o.address.province)}</div>
+      </div>
+    </div>`).join('');
+
+  const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${ordered.map(s => encodeURIComponent(`${s.o.address.detail} ${s.o.address.subdistrict} ${s.o.address.district} ${s.o.address.province}`)).join('/')}`;
+
+  showRouteModal('🗺️ แผนเส้นทางส่งของ (คำนวณทันที)', `
+    <div class="route-stats">
+      <div class="route-stat"><div class="rs-k">ระยะทางรวม</div><div class="rs-v">${totalKm.toFixed(0)} กม.</div></div>
+      <div class="route-stat"><div class="rs-k">เวลาโดยประมาณ</div><div class="rs-v">${hh} ชม. ${mm} น.</div></div>
+      <div class="route-stat"><div class="rs-k">น้ำมัน ~</div><div class="rs-v">${fuelLiters} ลิตร · ฿${fuelBaht.toLocaleString()}</div></div>
+    </div>
+    <div class="route-stops">${listHtml}</div>
+    <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🚚 เปิดเส้นทางทั้งหมดใน Google Maps</a>
+    <div id="ai-tips" class="ai-tips"><div class="route-loading">🤖 น้องโฟลวกำลังคิดเคล็ดลับประหยัดน้ำมัน...</div></div>
+  `);
+
+  // 2) เสริมด้วย AI tips แบบ async + timeout 8 วิ (ถ้าช้าก็ข้าม)
   try {
-    const prompt = `คุณคือผู้เชี่ยวชาญด้านโลจิสติกส์ในประเทศไทย ช่วยวางแผนเส้นทางส่งของให้รถบรรทุก 1 คัน\n\nจุดเริ่มต้น (โรงงาน): ${origin}\n\nจุดส่งของทั้งหมด ${closed.length} จุด:\n${stopList}\n\nกรุณา:\n1) จัดลำดับการส่งของให้ระยะทางและเวลารวมน้อยที่สุด (Travelling Salesman อย่างง่าย)\n2) ระบุเหตุผลสั้นๆ ของการจัดลำดับ\n3) ประมาณระยะทางรวม (กม.) และเวลารวมโดยประมาณ (รวมจราจร กทม.)\n4) ให้คำแนะนำประหยัดน้ำมัน 2-3 ข้อ\n\nตอบเป็นภาษาไทย กระชับ ใช้รูปแบบรายการชัดเจน`;
-    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }) });
+    const stopList = ordered.map((s, i) => `${i + 1}. ${s.o.customerName} จ.${s.o.address.province}`).join('\n');
+    const prompt = `ลำดับการส่งของรถบรรทุก 1 คัน รวม ${ordered.length} จุด ระยะรวม ${totalKm.toFixed(0)} กม.:\n${stopList}\n\nให้คำแนะนำประหยัดน้ำมัน/เวลา 3 ข้อสั้นๆ เป็นภาษาไทย ใช้ bullet`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }), signal: ctrl.signal });
+    clearTimeout(t);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'AI ขัดข้อง');
-    const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(origin)}/${closed.map(o => encodeURIComponent(`${o.address.detail} ${o.address.subdistrict} ${o.address.district} ${o.address.province}`)).join('/')}`;
-    showRouteModal('🗺️ แผนเส้นทางส่งของจาก AI', `
-      <div class="route-summary">${renderMarkdown(data.text)}</div>
-      <a class="map-link" href="${mapsUrl}" target="_blank" rel="noopener">🚚 เปิดเส้นทางทั้งหมดใน Google Maps</a>
-    `);
-  } catch (e) {
-    showRouteModal('⚠️ ผิดพลาด', `<div style="color:#b91c1c;">${escapeHtml(e.message)}</div>`);
+    const tipsEl = document.getElementById('ai-tips');
+    if (tipsEl && data?.text) tipsEl.innerHTML = `<div class="ai-tips-title">💡 เคล็ดลับจากน้องโฟลว</div>${renderMarkdown(data.text)}`;
+    else if (tipsEl) tipsEl.remove();
+  } catch {
+    const tipsEl = document.getElementById('ai-tips');
+    if (tipsEl) tipsEl.remove();
   }
 }
 
