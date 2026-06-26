@@ -1928,14 +1928,23 @@ function updateCartSummary() {
       grand.textContent = '';
     } else {
       const s = computeShipping(subtotal);
-      pill.className = 'pill' + (s.free ? ' free' : '');
-      pill.textContent = s.free
+      const st = window._shipStatus || { phase: 'idle' };
+      const loading = st.phase === 'geocoding' || st.phase === 'debouncing';
+      pill.className = 'pill' + (s.free ? ' free' : '') + (st.phase === 'error' ? ' warn' : '') + (loading ? ' loading' : '');
+      pill.innerHTML = s.free
         ? `🎉 ส่งฟรี (ยอด ≥ ฿${s.freeAt.toLocaleString()})`
-        : `🚚 ค่าส่ง ฿${s.fee}`;
+        : (loading ? `<span class="ship-spin"></span> กำลังคำนวณค่าส่ง...` : `🚚 ค่าส่ง ฿${s.fee}`);
+
+      let statusLine = '';
+      if (st.phase === 'geocoding')   statusLine = `<div class="ship-status info">${st.message}</div>`;
+      else if (st.phase === 'debouncing') statusLine = `<div class="ship-status muted">${st.message}</div>`;
+      else if (st.phase === 'ok')     statusLine = `<div class="ship-status ok">${st.message}</div>`;
+      else if (st.phase === 'error')  statusLine = `<div class="ship-status err">⚠️ ${st.message} <button class="ship-retry" onclick="window._accurateShipping=null; refreshAccurateShipping()">ลองใหม่</button></div>`;
+
       const srcTxt = s.source === 'maps'
         ? `✅ เส้นทางจริง (Google Maps)${s.durationText ? ' · ขับ ~' + s.durationText : ''}`
-        : (s.source === 'gps' ? '· จาก GPS' : (s.source === 'province' ? '· จากจังหวัด (ประมาณ)' : '· ประมาณ'));
-      detail.textContent = `${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. ${srcTxt}`;
+        : (s.source === 'gps' ? '· จาก GPS (ประมาณเส้นตรง)' : (s.source === 'province' ? '· จากจังหวัด (ประมาณ)' : '· ประมาณ'));
+      detail.innerHTML = `<div>${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. ${srcTxt}</div>${statusLine}`;
       grand.textContent = 'รวมต้องชำระ ฿' + (depTotal + s.fee).toLocaleString();
     }
   }
