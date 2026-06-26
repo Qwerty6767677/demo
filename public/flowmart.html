@@ -1495,6 +1495,7 @@ function detectUserLocation() {
             document.getElementById('welcome-msg').innerText = `ระบบสแกนพบพิกัดจัดส่งในพื้นที่ จ.${detectedProvince}`;
           }
           updateCartSummary();
+          refreshAccurateShipping();
         }
       } catch {
         setDefaultLocation();
