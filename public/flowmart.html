@@ -1415,8 +1415,10 @@ function detectUserLocation() {
   }
   navigator.geolocation.getCurrentPosition(
     async (position) => {
+      const lat = position.coords.latitude, lon = position.coords.longitude;
+      userCoords = { lat, lon, source: 'gps' };
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&accept-language=th`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=th&zoom=14`);
         const data = await res.json();
         if (data && data.address) {
           let province = data.address.province || data.address.city || data.address.state || 'ปทุมธานี';
@@ -1425,12 +1427,21 @@ function detectUserLocation() {
 
           badge.textContent = `📍 ${detectedProvince}`;
           provInput.value = detectedProvince;
-          subdistInput.value = data.address.subdistrict || data.address.suburb || '';
-          distInput.value = data.address.district || data.address.city_district || '';
+          subdistInput.value = data.address.subdistrict || data.address.suburb || data.address.neighbourhood || '';
+          distInput.value = data.address.district || data.address.city_district || data.address.county || '';
           zipInput.value = data.address.postcode || '';
           detailText.value = data.address.road ? `ซอย/ถนน ${data.address.road}` : '';
 
-          document.getElementById('welcome-msg').innerText = `ระบบสแกนพบพิกัดจัดส่งในพื้นที่ จ.${detectedProvince} ข้อมูลที่อยู่ถูกป้อนเข้าสู่ฟอร์มเรียบร้อย สามารถเปิดตรวจสอบได้ที่ปุ่มโปรไฟล์ด้านบนครับ`;
+          // คำนวณค่าส่งทันที โชว์ระยะ + ค่าส่งให้ผู้ใช้ในข้อความต้อนรับ
+          try {
+            const ship = computeShipping(0);
+            const msg = `ระบบ AI ระบุพิกัดจัดส่งของคุณที่ จ.${detectedProvince} (~${ship.km} กม. จากฮับโรงงาน) — ` +
+              (ship.fee === 0 ? `ยอดถึงเกณฑ์ส่งฟรี 🎉` : `ค่าส่งโดยประมาณ ฿${ship.fee} (${shippingZoneLabel(ship.km)}, เพดานสูงสุด ฿299)`);
+            document.getElementById('welcome-msg').innerText = msg;
+          } catch {
+            document.getElementById('welcome-msg').innerText = `ระบบสแกนพบพิกัดจัดส่งในพื้นที่ จ.${detectedProvince}`;
+          }
+          updateCartSummary();
         }
       } catch {
         setDefaultLocation();
@@ -1450,8 +1461,24 @@ function detectUserLocation() {
     zipInput.value = "12120";
     detailText.value = "99/5 ม.2 ซอยแจ้งวัฒนะ 14";
     badge.classList.remove('loading');
+    const c = PROVINCE_COORDS['ปทุมธานี'];
+    if (!userCoords) userCoords = { lat: c[0], lon: c[1], source: 'default' };
+    try { updateCartSummary(); } catch {}
   }
 }
+
+// ผู้ใช้แก้จังหวัด → คำนวณค่าส่งใหม่
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'input-province') {
+    const v = e.target.value.replace('จังหวัด','').trim();
+    if (PROVINCE_COORDS[v]) {
+      const c = PROVINCE_COORDS[v];
+      userCoords = { lat: c[0], lon: c[1], source: 'province' };
+      detectedProvince = v;
+      try { updateCartSummary(); } catch {}
+    }
+  }
+});
 
 function toggleAccountModal() {
   document.getElementById('account-modal-layer').classList.toggle('open');
