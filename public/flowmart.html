@@ -166,6 +166,17 @@
     border:1px solid #bae6fd; font-size:11px;
   }
   .ship-line .pill.free { background: linear-gradient(135deg,#dcfce7,#ecfccb); color:#15803d; border-color:#bbf7d0; }
+  .ship-line .pill.warn { background: linear-gradient(135deg,#fef3c7,#fee2e2); color:#b45309; border-color:#fcd34d; }
+  .ship-line .pill.loading { background: linear-gradient(135deg,#eef2ff,#e0f2fe); color:#3730a3; border-color:#c7d2fe; }
+  .ship-spin { display:inline-block; width:10px; height:10px; border:2px solid #c7d2fe; border-top-color:#3730a3; border-radius:50%; animation: ship-spin 0.7s linear infinite; vertical-align:-1px; margin-right:4px; }
+  @keyframes ship-spin { to { transform: rotate(360deg); } }
+  .ship-status { font-size:11px; margin-top:3px; line-height:1.45; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .ship-status.info  { color:#3730a3; }
+  .ship-status.muted { color:#64748b; }
+  .ship-status.ok    { color:#15803d; }
+  .ship-status.err   { color:#b91c1c; }
+  .ship-retry { border:1px solid #fecaca; background:#fff; color:#b91c1c; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:99px; cursor:pointer; }
+  .ship-retry:hover { background:#fef2f2; }
   .ship-line .grand { margin-left:auto; font-weight:800; color:#0f172a; font-family: var(--font-mono); font-size:13px; }
   @media (max-width: 520px) {
     .ship-line .grand { margin-left: 0; }
