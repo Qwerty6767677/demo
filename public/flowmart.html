@@ -1387,25 +1387,66 @@ function buildFullAddress(){
 }
 let _shipReqId = 0;
 let _shipDebounce = null;
+window._shipStatus = { phase: 'idle', message: '', error: null };
+
+function setShipStatus(phase, message, error){
+  window._shipStatus = { phase, message: message || '', error: error || null };
+  try { updateCartSummary(); } catch {}
+}
+
+function explainShipError(httpStatus, payload){
+  const raw = (payload && (payload.error || payload.message)) || '';
+  if (httpStatus === 0)   return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ — ตรวจสัญญาณแล้วลองใหม่';
+  if (httpStatus === 400) return 'ที่อยู่ยังไม่ครบ — กรอกบ้านเลขที่ ตำบล อำเภอ จังหวัด และรหัสไปรษณีย์';
+  if (/geocode/i.test(raw))   return 'หาตำแหน่งที่อยู่นี้บนแผนที่ไม่พบ — ลองพิมพ์ให้ละเอียด/ถูกต้องขึ้น';
+  if (/route/i.test(raw))     return 'หาเส้นทางขับรถจากโรงงานไม่ได้ — ที่อยู่อาจไม่อยู่ในเขตส่งของ';
+  if (httpStatus === 429) return 'ระบบขอข้อมูลแผนที่ถี่เกินไป รอสักครู่แล้วลองใหม่';
+  if (httpStatus === 402) return 'เครดิตแผนที่ของระบบหมด — กรุณาแจ้งทีมงาน';
+  if (httpStatus === 500) return 'เซิร์ฟเวอร์ภายในขัดข้อง — กำลังใช้ค่าโดยประมาณแทน';
+  if (httpStatus === 502 || httpStatus === 503) return 'บริการแผนที่ตอบช้า/ไม่ตอบ — ใช้ค่าโดยประมาณแทน';
+  return raw ? `คำนวณไม่สำเร็จ: ${raw}` : 'คำนวณค่าส่งแบบแม่นยำไม่สำเร็จ — แสดงค่าโดยประมาณแทน';
+}
+
 async function refreshAccurateShipping(){
   const addr = buildFullAddress();
-  if (!addr || addr.length < 12) return;
+  if (!addr || addr.length < 12) {
+    setShipStatus('idle', '');
+    return;
+  }
   clearTimeout(_shipDebounce);
+  setShipStatus('debouncing', 'รอพิมพ์ที่อยู่ครบก่อนคำนวณ...');
   _shipDebounce = setTimeout(async () => {
     const myId = ++_shipReqId;
+    setShipStatus('geocoding', '🛰️ กำลังค้นหาพิกัดที่อยู่จัดส่งของคุณ...');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
     try {
       const res = await fetch('/api/shipping', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: addr, subtotal: 0 }),
+        signal: ctrl.signal,
       });
-      const data = await res.json();
-      if (myId !== _shipReqId) return; // มีคำขอใหม่กว่า
-      if (!res.ok) { console.warn('shipping api', data); return; }
+      clearTimeout(timer);
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (myId !== _shipReqId) return;
+      if (!res.ok || !data || !Number.isFinite(data.km)) {
+        console.warn('shipping api', res.status, data);
+        setShipStatus('error', explainShipError(res.status, data), { status: res.status, payload: data });
+        return;
+      }
       window._accurateShipping = data;
-      try { updateCartSummary(); } catch {}
-    } catch (e) { console.warn('shipping fetch failed', e); }
+      setShipStatus('ok', `✅ คำนวณเส้นทางจริงสำเร็จ · ${data.km.toFixed(1)} กม. · ขับ ~${data.durationText}`);
+    } catch (e) {
+      clearTimeout(timer);
+      if (myId !== _shipReqId) return;
+      const aborted = e?.name === 'AbortError';
+      console.warn('shipping fetch failed', e);
+      setShipStatus('error', aborted ? 'แผนที่ตอบช้าเกิน 12 วินาที — ใช้ค่าโดยประมาณแทน' : explainShipError(0, null), { aborted });
+    }
   }, 400);
 }
+
 
 
 /* ============ Skeleton Loading ============ */
