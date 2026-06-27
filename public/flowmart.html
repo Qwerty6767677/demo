@@ -2059,6 +2059,10 @@ function renderReceipt() {
         ? `<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">✅ ปิดดีลแล้ว</span>`
         : `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">⏳ รอปิดดีล <strong data-closesat="${closesAt}">${fmtCountdown(remain)}</strong></span>`;
       const itemsHtml = h.items.map(i => `<div style="font-size:12px;color:#475569;">• ${i.name} × ${i.qty} ${i.unit} = ฿${i.total.toLocaleString()}</div>`).join('');
+      const itemsSubtotal = (h.items || []).reduce((s, i) => s + (i.total || 0), 0);
+      const shipFee = Number(h.shippingFee || 0);
+      const svcFee = Number(h.serviceFee || 0);
+      const shipKm = h.shippingKm ? ` · ${h.shippingKm} กม.` : '';
       const cancelBtn = status === 'pending'
         ? (canCancel
             ? `<button class="cancel-btn" onclick="cancelHistoryOrder('${h.id}')">ยกเลิกบิลนี้</button>`
@@ -2072,13 +2076,27 @@ function renderReceipt() {
           </div>
           <div style="font-size:11px;color:var(--text-muted);">${new Date(h.ts).toLocaleString('th-TH')}</div>
           ${itemsHtml}
-          <div style="display:flex;justify-content:space-between;border-top:1px dashed #e2e8f0;padding-top:6px;">
-            <span style="font-size:12px;color:#475569;">ยอดรวม</span>
-            <span style="font-weight:800;color:var(--primary);font-family:var(--font-mono);">฿${h.totalAmount.toLocaleString()}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:12px;color:#475569;">มัดจำ 30%</span>
-            <span style="font-weight:700;color:#1e293b;font-family:var(--font-mono);">฿${h.depositAmount.toLocaleString()}</span>
+          <div style="border-top:1px dashed #e2e8f0;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;">
+              <span>ค่าสินค้า</span>
+              <span style="font-family:var(--font-mono);">฿${itemsSubtotal.toLocaleString()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;">
+              <span>🚚 ค่าจัดส่ง${shipKm}</span>
+              <span style="font-family:var(--font-mono);">${shipFee > 0 ? '฿' + shipFee.toLocaleString() : '<span style=\"color:#16a34a;font-weight:700;\">ฟรี</span>'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;">
+              <span>💼 ค่าธรรมเนียมบริการ${h.serviceFeeRate ? ` (${Math.round(h.serviceFeeRate*100)}%)` : ''}</span>
+              <span style="font-family:var(--font-mono);">${svcFee > 0 ? '฿' + svcFee.toLocaleString() : '฿0'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:2px;">
+              <span style="font-size:12px;color:#0f172a;font-weight:700;">ยอดรวมทั้งสิ้น</span>
+              <span style="font-weight:800;color:var(--primary);font-family:var(--font-mono);">฿${h.totalAmount.toLocaleString()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:#475569;">มัดจำ 30% (รวมค่าส่ง + ค่าธรรมเนียม)</span>
+              <span style="font-weight:700;color:#1e293b;font-family:var(--font-mono);">฿${h.depositAmount.toLocaleString()}</span>
+            </div>
           </div>
           ${cancelBtn ? `<div style="text-align:right;">${cancelBtn}</div>` : ''}
         </div>`;
