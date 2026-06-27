@@ -2691,8 +2691,13 @@ function printAllClosedPDF() {
         <div class="block"><h3>🏭 ผู้ขาย</h3><div class="nm">${escapeHtml(supplier.company || supplier.name || '-')}</div><div class="ad">${escapeHtml(supplier.supplierAddress || '-')}<br>☎ ${escapeHtml(supplier.contact || '-')}</div></div>
         <div class="block"><h3>🛍️ ลูกค้า</h3><div class="nm">${escapeHtml(o.customerName)}</div><div class="ad">${escapeHtml(o.address.detail)}<br>ต.${escapeHtml(o.address.subdistrict)} อ.${escapeHtml(o.address.district)}<br>จ.${escapeHtml(o.address.province)} ${escapeHtml(o.address.zip)}<br>📧 ${escapeHtml(o.customerEmail)}</div></div>
       </div>
-      <table class="items"><thead><tr><th style="width:36px;">#</th><th>สินค้า</th><th style="width:60px;">จำนวน</th><th style="width:80px;text-align:right;">ราคา</th><th style="width:100px;text-align:right;">รวม</th></tr></thead><tbody>${itemsRows}</tbody><tfoot><tr><td colspan="4" style="text-align:right;">ยอดรวม</td><td style="text-align:right;">฿${o.totalAmount.toLocaleString()}</td></tr></tfoot></table>
-      <div class="total-box"><div><div class="t">มัดจำ 30%</div><div class="a">฿${o.depositAmount.toLocaleString()}</div></div><div style="text-align:right;"><div class="t">คงเหลือเก็บปลายทาง</div><div class="a big">฿${(o.totalAmount - o.depositAmount).toLocaleString()}</div></div></div>
+      <table class="items"><thead><tr><th style="width:36px;">#</th><th>สินค้า</th><th style="width:60px;">จำนวน</th><th style="width:80px;text-align:right;">ราคา</th><th style="width:100px;text-align:right;">รวม</th></tr></thead><tbody>${itemsRows}</tbody><tfoot>
+        <tr><td colspan="4" style="text-align:right;">ค่าสินค้า</td><td style="text-align:right;">฿${(o.items.reduce((s,i)=>s+(i.total||0),0)).toLocaleString()}</td></tr>
+        <tr><td colspan="4" style="text-align:right;">🚚 ค่าจัดส่ง${o.shippingKm ? ' ('+o.shippingKm+' กม.)' : ''}</td><td style="text-align:right;">${Number(o.shippingFee||0) > 0 ? '฿'+Number(o.shippingFee).toLocaleString() : 'ฟรี'}</td></tr>
+        <tr><td colspan="4" style="text-align:right;">💼 ค่าธรรมเนียมบริการ${o.serviceFeeRate ? ' ('+Math.round(o.serviceFeeRate*100)+'%)' : ''}</td><td style="text-align:right;">฿${Number(o.serviceFee||0).toLocaleString()}</td></tr>
+        <tr><td colspan="4" style="text-align:right;font-weight:800;">ยอดรวมทั้งสิ้น</td><td style="text-align:right;font-weight:800;">฿${o.totalAmount.toLocaleString()}</td></tr>
+      </tfoot></table>
+      <div class="total-box"><div><div class="t">มัดจำ 30% (รวมค่าส่ง+ค่าธรรมเนียม)</div><div class="a">฿${o.depositAmount.toLocaleString()}</div></div><div style="text-align:right;"><div class="t">คงเหลือเก็บปลายทาง</div><div class="a big">฿${(o.totalAmount - o.depositAmount).toLocaleString()}</div></div></div>
       <div class="sig"><div>ลายเซ็นผู้ส่ง / โรงงาน</div><div>ลายเซ็นผู้รับ / ลูกค้า</div></div>
     </section>`;
   }).join('');
