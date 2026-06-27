@@ -2208,6 +2208,7 @@ async function executeCheckout() {
     const firstItem = items[0];
     const closesAt = orderItems[0]?.closesAt || Date.now();
     const ship = computeShipping(totalAmount);
+    const serviceFee = calcServiceFee(totalAmount);
     const order = {
       id: 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
       ts: Date.now(),
@@ -2218,10 +2219,12 @@ async function executeCheckout() {
       address,
       category: firstItem.cat,
       items: orderItems,
-      totalAmount: totalAmount + ship.fee,
-      depositAmount: Math.round(totalAmount * 0.3) + ship.fee,
+      totalAmount: totalAmount + ship.fee + serviceFee,
+      depositAmount: Math.round(totalAmount * 0.3) + ship.fee + serviceFee,
       shippingFee: ship.fee,
       shippingKm: ship.km,
+      serviceFee,
+      serviceFeeRate: SERVICE_FEE_RATE,
       status: 'pending',
     };
     await addSupplierOrder(order);   // ส่งให้โรงงาน (ใช้ closesAt ร่วมดีลกลุ่ม + ฐานข้อมูลกลาง)
