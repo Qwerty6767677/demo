@@ -1409,6 +1409,15 @@ function buildFullAddress(){
   const zp = document.getElementById('input-zipcode')?.value?.trim() || '';
   return [d, sd && `ต.${sd}`, ds && `อ.${ds}`, pv && `จ.${pv}`, zp, 'ประเทศไทย'].filter(Boolean).join(' ');
 }
+function getStructuredAddress(){
+  return {
+    detail: document.getElementById('input-address-detail')?.value?.trim() || '',
+    subdistrict: document.getElementById('input-subdistrict')?.value?.trim() || '',
+    district: document.getElementById('input-district')?.value?.trim() || '',
+    province: document.getElementById('input-province')?.value?.trim() || '',
+    zipcode: document.getElementById('input-zipcode')?.value?.trim() || '',
+  };
+}
 let _shipReqId = 0;
 let _shipDebounce = null;
 window._shipStatus = { phase: 'idle', message: '', error: null };
@@ -1422,6 +1431,7 @@ function explainShipError(httpStatus, payload){
   const raw = (payload && (payload.error || payload.message)) || '';
   if (httpStatus === 0)   return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ — ตรวจสัญญาณแล้วลองใหม่';
   if (httpStatus === 400) return 'ที่อยู่ยังไม่ครบ — กรอกบ้านเลขที่ ตำบล อำเภอ จังหวัด และรหัสไปรษณีย์';
+  if (httpStatus === 422 || payload?.code === 'area_mismatch') return raw || 'พื้นที่ไม่ตรงกับที่อยู่จริง — ตรวจตำบล/อำเภอ/จังหวัด/รหัสไปรษณีย์อีกครั้ง';
   if (/geocode/i.test(raw))   return 'หาตำแหน่งที่อยู่นี้บนแผนที่ไม่พบ — ลองพิมพ์ให้ละเอียด/ถูกต้องขึ้น';
   if (/route/i.test(raw))     return 'หาเส้นทางขับรถจากโรงงานไม่ได้ — ที่อยู่อาจไม่อยู่ในเขตส่งของ';
   if (httpStatus === 429) return 'ระบบขอข้อมูลแผนที่ถี่เกินไป รอสักครู่แล้วลองใหม่';
@@ -1432,8 +1442,9 @@ function explainShipError(httpStatus, payload){
 }
 
 async function refreshAccurateShipping(){
+  const fields = getStructuredAddress();
   const addr = buildFullAddress();
-  if (!addr || addr.length < 12) {
+  if (!fields.detail || !fields.subdistrict || !fields.district || !fields.province || !fields.zipcode) {
     setShipStatus('idle', '');
     return;
   }
@@ -1447,7 +1458,7 @@ async function refreshAccurateShipping(){
     try {
       const res = await fetch('/api/shipping', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: addr, subtotal: 0 }),
+        body: JSON.stringify({ address: addr, ...fields, subtotal: 0 }),
         signal: ctrl.signal,
       });
       clearTimeout(timer);
@@ -1460,7 +1471,10 @@ async function refreshAccurateShipping(){
         return;
       }
       window._accurateShipping = data;
-      setShipStatus('ok', `✅ คำนวณเส้นทางจริงสำเร็จ · ${data.km.toFixed(1)} กม. · ขับ ~${data.durationText}`);
+      const areaText = data.areaCheck?.found
+        ? ` · ตรวจพื้นที่แล้ว: ${data.areaCheck.found.subdistrict || fields.subdistrict}, ${data.areaCheck.found.district || fields.district}, ${data.areaCheck.found.province || fields.province}`
+        : '';
+      setShipStatus('ok', `✅ พื้นที่ตรงกับแผนที่ · เส้นทางจริง ${data.km.toFixed(1)} กม. · ขับ ~${data.durationText}${areaText}`);
     } catch (e) {
       clearTimeout(timer);
       if (myId !== _shipReqId) return;
