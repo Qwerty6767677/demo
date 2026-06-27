@@ -1940,6 +1940,9 @@ function updateQty(id, delta) {
   renderMarket();
 }
 
+const SERVICE_FEE_RATE = 0.03; // ค่าธรรมเนียมบริการ 3% ของยอดสินค้า
+function calcServiceFee(subtotal){ return Math.round((subtotal || 0) * SERVICE_FEE_RATE); }
+
 function updateCartSummary() {
   let depTotal = 0, subtotal = 0, count = 0;
   DATA.forEach(item => {
@@ -1950,7 +1953,8 @@ function updateCartSummary() {
       depTotal += Math.round(line * 0.3);
     }
   });
-  document.getElementById('summary-deposit').textContent = '฿' + depTotal.toLocaleString();
+  const serviceFee = calcServiceFee(subtotal);
+  document.getElementById('summary-deposit').textContent = '฿' + (depTotal + serviceFee).toLocaleString();
   const historyCount = (typeof getCustomerOrders === 'function') ? getCustomerOrders().length : 0;
   document.getElementById('cart-count').textContent = count + historyCount;
 
