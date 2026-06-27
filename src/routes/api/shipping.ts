@@ -5,8 +5,102 @@ const FACTORY = { lat: 14.0708, lon: 100.6147 };
 
 type Body = {
   address?: string;          // ที่อยู่เต็มของลูกค้า
+  detail?: string;
+  subdistrict?: string;
+  district?: string;
+  province?: string;
+  zipcode?: string;
+  zip?: string;
   subtotal?: number;         // ยอดสินค้ารวม (สำหรับฟรีค่าส่ง)
 };
+
+type AddressComponent = { long_name: string; short_name?: string; types: string[] };
+type GeoResult = {
+  geometry: { location: { lat: number; lng: number }; location_type?: string };
+  formatted_address: string;
+  address_components?: AddressComponent[];
+  partial_match?: boolean;
+};
+
+function normalizeThaiArea(value: unknown) {
+  return String(value || "")
+    .trim()
+    .replace(/กรุงเทพฯ|กทม\.?/g, "กรุงเทพมหานคร")
+    .replace(/จังหวัด|จ\.|อำเภอ|อ\.|เขต|ตำบล|ต\.|แขวง|ประเทศไทย|รหัสไปรษณีย์/g, "")
+    .replace(/[\s,./()\-]+/g, "")
+    .toLowerCase();
+}
+
+function sameArea(expected: unknown, actual: unknown) {
+  const e = normalizeThaiArea(expected);
+  const a = normalizeThaiArea(actual);
+  return Boolean(e && a && (e === a || e.includes(a) || a.includes(e)));
+}
+
+function uniq(values: string[]) {
+  return [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+}
+
+function component(comps: AddressComponent[] = [], type: string) {
+  return comps.find((c) => c.types.includes(type))?.long_name || "";
+}
+
+function componentsByType(comps: AddressComponent[] = [], types: string[]) {
+  return uniq(comps.filter((c) => types.some((t) => c.types.includes(t))).map((c) => c.long_name));
+}
+
+function extractArea(result: GeoResult) {
+  const comps = result.address_components || [];
+  const province = component(comps, "administrative_area_level_1");
+  const postalCode = component(comps, "postal_code");
+  const districtCandidates = componentsByType(comps, [
+    "administrative_area_level_2",
+    "locality",
+    "sublocality_level_1",
+  ]);
+  const subdistrictCandidates = componentsByType(comps, [
+    "administrative_area_level_3",
+    "sublocality_level_2",
+    "neighborhood",
+  ]);
+  return {
+    province,
+    district: districtCandidates[0] || "",
+    subdistrict: subdistrictCandidates[0] || "",
+    postalCode,
+    districtCandidates,
+    subdistrictCandidates,
+  };
+}
+
+function textHasArea(text: string, value: string) {
+  const t = normalizeThaiArea(text);
+  const v = normalizeThaiArea(value);
+  return Boolean(t && v && t.includes(v));
+}
+
+function areaMatches(result: GeoResult, expected: Required<Pick<Body, "detail" | "subdistrict" | "district" | "province">> & { zip: string }) {
+  const area = extractArea(result);
+  const formatted = result.formatted_address || "";
+  const provinceOk = sameArea(expected.province, area.province) || textHasArea(formatted, expected.province);
+  const districtOk = area.districtCandidates.some((d) => sameArea(expected.district, d)) || textHasArea(formatted, expected.district);
+  const subdistrictOk = area.subdistrictCandidates.some((d) => sameArea(expected.subdistrict, d)) || textHasArea(formatted, expected.subdistrict);
+  const zipOk = !expected.zip || !area.postalCode || String(area.postalCode).trim() === String(expected.zip).trim();
+  const qualityPenalty = result.partial_match || result.geometry.location_type === "APPROXIMATE" ? 10 : 0;
+  const score = (provinceOk ? 35 : 0) + (districtOk ? 25 : 0) + (subdistrictOk ? 20 : 0) + (zipOk ? 20 : 0) - qualityPenalty;
+  return { area, provinceOk, districtOk, subdistrictOk, zipOk, score };
+}
+
+function areaMismatchMessage(expected: { province?: string; district?: string; subdistrict?: string; zip?: string }, found?: ReturnType<typeof extractArea>) {
+  const parts: string[] = [];
+  if (expected.province && found?.province && !sameArea(expected.province, found.province)) parts.push(`จังหวัดที่กรอก “${expected.province}” แต่แผนที่พบ “${found.province}”`);
+  if (expected.district && found?.district && !sameArea(expected.district, found.district)) parts.push(`อำเภอ/เขตที่กรอก “${expected.district}” แต่พบ “${found.district}”`);
+  if (expected.subdistrict && found?.subdistrict && !sameArea(expected.subdistrict, found.subdistrict)) parts.push(`ตำบล/แขวงที่กรอก “${expected.subdistrict}” แต่พบ “${found.subdistrict}”`);
+  if (expected.zip && found?.postalCode && String(expected.zip).trim() !== String(found.postalCode).trim()) parts.push(`รหัสไปรษณีย์ที่กรอก “${expected.zip}” แต่พบ “${found.postalCode}”`);
+  return parts.length
+    ? `พื้นที่ไม่ตรงกัน: ${parts.join(" · ")} — กรุณาแก้ข้อมูลพื้นที่ให้ตรงกับที่อยู่จริง`
+    : "พื้นที่ยังไม่ชัดเจน — กรุณากรอกบ้านเลขที่/ถนน ตำบล อำเภอ จังหวัด และรหัสไปรษณีย์ให้ละเอียดขึ้น";
+}
 
 function feeFromKm(km: number) {
   if (km <= 15) return 39;
@@ -23,8 +117,29 @@ export const Route = createFileRoute("/api/shipping")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const { address, subtotal = 0 } = (await request.json()) as Body;
-          const addr = String(address || "").trim();
+          const body = (await request.json()) as Body;
+          const { subtotal = 0 } = body;
+          const detail = String(body.detail || "").trim();
+          const subdistrict = String(body.subdistrict || "").trim();
+          const district = String(body.district || "").trim();
+          const province = String(body.province || "").trim().replace(/^จังหวัด/, "");
+          const zip = String(body.zipcode || body.zip || "").trim();
+          const structured = Boolean(detail || subdistrict || district || province || zip);
+          if (structured) {
+            const missing = [
+              !detail && "บ้านเลขที่/ถนน",
+              !subdistrict && "ตำบล/แขวง",
+              !district && "อำเภอ/เขต",
+              !province && "จังหวัด",
+              !zip && "รหัสไปรษณีย์",
+            ].filter(Boolean);
+            if (missing.length) {
+              return Response.json({ code: "incomplete_address", error: `กรอกข้อมูลที่อยู่ให้ครบ: ${missing.join(", ")}` }, { status: 400 });
+            }
+          }
+          const addr = structured
+            ? [detail, subdistrict, district, province, zip, "ประเทศไทย"].filter(Boolean).join(" ")
+            : String(body.address || "").trim();
           if (!addr) return Response.json({ error: "address required" }, { status: 400 });
 
           const LOVABLE = process.env.LOVABLE_API_KEY;
@@ -44,7 +159,7 @@ export const Route = createFileRoute("/api/shipping")({
           );
           const geo = (await geoRes.json()) as {
             status?: string;
-            results?: Array<{ geometry: { location: { lat: number; lng: number } }; formatted_address: string }>;
+            results?: GeoResult[];
             error_message?: string;
           };
           if (!geoRes.ok || geo.status !== "OK" || !geo.results?.length) {
@@ -53,8 +168,28 @@ export const Route = createFileRoute("/api/shipping")({
               { status: 502 },
             );
           }
-          const loc = geo.results[0].geometry.location;
-          const formatted = geo.results[0].formatted_address;
+          let chosen = geo.results[0];
+          let check: ReturnType<typeof areaMatches> | null = null;
+          if (structured) {
+            const expected = { detail, subdistrict, district, province, zip };
+            const checked = geo.results.map((result) => ({ result, check: areaMatches(result, expected) }))
+              .sort((a, b) => b.check.score - a.check.score);
+            const best = checked[0];
+            if (!best || best.check.score < 80 || !best.check.provinceOk || !best.check.districtOk || !best.check.subdistrictOk || !best.check.zipOk) {
+              return Response.json({
+                code: "area_mismatch",
+                error: areaMismatchMessage(expected, best?.check.area),
+                message: areaMismatchMessage(expected, best?.check.area),
+                expected,
+                found: best?.check.area || null,
+                matchedAddress: best?.result.formatted_address || null,
+              }, { status: 422 });
+            }
+            chosen = best.result;
+            check = best.check;
+          }
+          const loc = chosen.geometry.location;
+          const formatted = chosen.formatted_address;
 
           // 2) Routes API: ระยะทาง/เวลาขับรถจริง
           const routeRes = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
@@ -99,6 +234,16 @@ export const Route = createFileRoute("/api/shipping")({
             fee,
             free,
             formattedAddress: formatted,
+            areaCheck: check ? {
+              confidence: check.score >= 95 ? "high" : "medium",
+              found: check.area,
+              matched: {
+                province: check.provinceOk,
+                district: check.districtOk,
+                subdistrict: check.subdistrictOk,
+                zipcode: check.zipOk,
+              },
+            } : null,
             origin: FACTORY,
             destination: { lat: loc.lat, lon: loc.lng },
           });
