@@ -2004,8 +2004,10 @@ function updateCartSummary() {
       const srcTxt = s.source === 'maps'
         ? `✅ เส้นทางจริง (Google Maps)${s.durationText ? ' · ขับ ~' + s.durationText : ''}`
         : (s.source === 'gps' ? '· จาก GPS (ประมาณเส้นตรง)' : (s.source === 'province' ? '· จากจังหวัด (ประมาณ)' : '· ประมาณ'));
-      detail.innerHTML = `<div>${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. ${srcTxt}</div>${statusLine}`;
-      grand.textContent = 'รวมต้องชำระ ฿' + (depTotal + s.fee).toLocaleString();
+      detail.innerHTML = `<div>${shippingZoneLabel(s.km)} · ระยะ ${s.km} กม. ${srcTxt}</div>
+        <div>💼 ค่าธรรมเนียมบริการ ${(SERVICE_FEE_RATE*100).toFixed(0)}% = ฿${serviceFee.toLocaleString()}</div>
+        ${statusLine}`;
+      grand.textContent = 'รวมต้องชำระ ฿' + (depTotal + s.fee + serviceFee).toLocaleString();
     } else {
       detail.innerHTML = statusLine || `เลือกสินค้าเพื่อคำนวณค่าส่ง`;
       grand.textContent = '';
