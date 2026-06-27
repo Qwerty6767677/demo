@@ -77,18 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { title: "Flowmart" },
       { name: "description", content: "Enhances user interface and adds a dynamic dashboard for visualizing sales data." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
+      { property: "og:title", content: "Flowmart" },
       { property: "og:description", content: "Enhances user interface and adds a dynamic dashboard for visualizing sales data." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:title", content: "Flowmart" },
       { name: "twitter:description", content: "Enhances user interface and adds a dynamic dashboard for visualizing sales data." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d9086d3a-f64c-44bb-94ef-e99f827c8f1a/id-preview-f10ed0ed--7c770568-3196-4365-b3ed-c936e8db8ccc.lovable.app-1781683418756.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d9086d3a-f64c-44bb-94ef-e99f827c8f1a/id-preview-f10ed0ed--7c770568-3196-4365-b3ed-c936e8db8ccc.lovable.app-1781683418756.png" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/cc351ee7-381f-4886-89d8-ba79750a5979" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/cc351ee7-381f-4886-89d8-ba79750a5979" },
     ],
     links: [
       {
